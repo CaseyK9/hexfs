@@ -21,6 +21,6 @@ type StatsResponseSuccess struct {
 	MinFileSize string `json:"min_file_size"`
 }
 
-type Ping struct {
+type EmptyResponse struct {
 	Status int `json:"status"`
 }

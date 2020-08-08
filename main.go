@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/julienschmidt/httprouter"
 	"github.com/joho/godotenv"
+	"github.com/julienschmidt/httprouter"
 	"io"
 	"log"
 	"net/http"
@@ -19,13 +19,37 @@ import (
 
 var SizeOfUploadDir int64
 
-func HandleUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func HandleDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	applyCORSHeaders(&w)
-	auth := (*r).Header.Get("Authorization")
-	if auth != os.Getenv(UploadKey) {
+	auth := IsAuthorized(r)
+	if !auth {
 		_ = json.NewEncoder(w).Encode(ResponseError{
 			Status:  1,
-			Message: "Not authorized.",
+			Message: "Not authorized to delete.",
+		})
+		return
+	}
+	err := os.Remove(path.Join(os.Getenv(UploadDirPath), ps.ByName("name")))
+	if err != nil {
+		_ = json.NewEncoder(w).Encode(ResponseError{
+			Status:  1,
+			Message: "Failed to delete file. " + err.Error(),
+		})
+		return
+	}
+	_ = json.NewEncoder(w).Encode(EmptyResponse{
+		Status:  0,
+	})
+	return
+}
+
+func HandleUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	applyCORSHeaders(&w)
+	auth := IsAuthorized(r)
+	if !auth {
+		_ = json.NewEncoder(w).Encode(ResponseError{
+			Status:  1,
+			Message: "Not authorized to upload.",
 		})
 		return
 	}
@@ -48,7 +72,13 @@ func HandleUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		})
 		return
 	}
-	defer file.Close()
+
+	defer func() {
+		fileCloseErr := file.Close()
+		if fileCloseErr != nil {
+			fmt.Println("Couldn't close form file: " + fileCloseErr.Error())
+		}
+	}()
 
 	if handler.Size > maxSize {
 		_ = json.NewEncoder(w).Encode(ResponseError{
@@ -93,7 +123,12 @@ func HandleUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		})
 		return
 	}
-	defer f.Close()
+	defer func() {
+		fileCloseErr := f.Close()
+		if fileCloseErr != nil {
+			fmt.Println("Failed to close file on disk: " + fileCloseErr.Error())
+		}
+	}()
 	written, writeErr := io.Copy(f, file)
 	if writeErr != nil {
 		_ = json.NewEncoder(w).Encode(ResponseError{
@@ -127,7 +162,7 @@ func ServeFileOrStats(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 		ServeStats(w, r, ps)
 		return
 	} else if strings.ToLower(ps.ByName("name")) == "ping" {
-		_ = json.NewEncoder(w).Encode(Ping{
+		_ = json.NewEncoder(w).Encode(EmptyResponse{
 			Status:  0,
 		})
 		return
@@ -143,7 +178,12 @@ func ServeFileOrStats(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 			})
 			return
 		} else {
-			defer notFoundImage.Close()
+			defer func() {
+				nfErr := notFoundImage.Close()
+				if nfErr != nil {
+					fmt.Println("Failed to close not-found image: " + nfErr.Error())
+				}
+			}()
 			_, copyErr := io.Copy(w, notFoundImage)
 			if copyErr != nil {
 				_ = json.NewEncoder(w).Encode(ResponseError{
@@ -155,7 +195,12 @@ func ServeFileOrStats(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 			return
 		}
 	}
-	defer f.Close()
+	defer func() {
+		fileErr := f.Close()
+		if fileErr != nil {
+			fmt.Println("Failed to close image sent to client: " + fileErr.Error())
+		}
+	}()
 	header := make([]byte, 512)
 	_, e := f.Read(header)
 	if e != nil {
@@ -223,6 +268,7 @@ func main() {
 	router := httprouter.New()
 	router.GET("/:name", ServeFileOrStats)
 	router.POST("/", HandleUpload)
+	router.POST("/delete/:name", HandleDelete)
 	fmt.Println("Listening on " + os.Getenv(Port))
 	log.Fatal(http.ListenAndServe(":" + os.Getenv(Port), router))
 }
