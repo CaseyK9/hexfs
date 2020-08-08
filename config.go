@@ -15,6 +15,7 @@ const (
 	DiscordWebhookURL = "PSE_DISCORD_WEBHOOK"
 	UploadDirMaxSize = "PSE_UPLOAD_DIR_MAX_SIZE"
 	UploadDirPath = "PSE_UPLOAD_DIR_PATH"
+	Endpoint = "PSE_ENDPOINT"
 )
 
 func ValidateEnv() {
@@ -23,7 +24,6 @@ func ValidateEnv() {
 		UploadKey,
 		MinSizeBytes,
 		MaxSizeBytes,
-		DiscordWebhookURL,
 		UploadDirMaxSize,
 		UploadDirPath,
 	} {

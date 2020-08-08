@@ -35,6 +35,7 @@ concerning docker, idk maybe later
     - `PSE_DISCORD_WEBHOOK` (optional, should be discord webhook url)
     - `PSE_UPLOAD_DIR_MAX_SIZE` (optional, default: 10GB)
     - `PSE_UPLOAD_DIR_PATH` (optional, default: working directory + /uploads)
+    - `PSE_ENDPOINT` (optional, set this to append URL before file name in webhook.)
     
 ### Endpoints
 
