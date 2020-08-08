@@ -73,3 +73,23 @@ type StatsResponseSuccess struct {
     
 - GET /ping
     - returns `{"status":0}`
+    
+### ShareX
+
+Replace every placeholder (marked with >> CONTENT <<) with your own domain.
+
+```json
+{
+  "Version": "13.0.1",
+  "Name": "PixelsFS ShareX",
+  "DestinationType": "ImageUploader, TextUploader, FileUploader",
+  "RequestMethod": "POST",
+  "RequestURL": ">> YOUR ENDPOINT HERE, NO TRAILING SLASH <<",
+  "Headers": {
+    "Authorization": ">> YOUR KEY HERE <<"
+  },
+  "Body": "MultipartFormData",
+  "FileFormName": "file",
+  "URL": ">> YOUR ENDPOINT HERE, NO TRAILING SLASH <</$json:name$"
+}
+```
