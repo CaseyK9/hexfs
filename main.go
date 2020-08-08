@@ -33,6 +33,13 @@ func HandleDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 		})
 		return
 	}
+	if ps.ByName("name") == "404.png" {
+		_ = json.NewEncoder(w).Encode(ResponseError{
+			Status:  1,
+			Message: "This file is reserved and cannot be deleted.",
+		})
+		return
+	}
 	err := os.Remove(path.Join(os.Getenv(UploadDirPath), ps.ByName("name")))
 	if err != nil {
 		_ = json.NewEncoder(w).Encode(ResponseError{
@@ -40,6 +47,12 @@ func HandleDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 			Message: "Failed to delete file. " + err.Error(),
 		})
 		return
+	}
+	if os.Getenv(DiscordWebhookURL) != "" {
+		webhookErr := SendToWebhook(fmt.Sprintf("%s deleted.", ps.ByName("name")))
+		if webhookErr != nil {
+			fmt.Println("Webhook failed to send: " + webhookErr.Error())
+		}
 	}
 	_ = json.NewEncoder(w).Encode(EmptyResponse{
 		Status:  0,
