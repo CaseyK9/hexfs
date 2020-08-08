@@ -19,17 +19,17 @@ import (
 var SizeOfUploadDir int64
 
 func HandleUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	auth := r.Header.Get("Authorization")
-	if auth == "" || auth != os.Getenv(UploadKey) {
+	applyCORSHeaders(&w)
+	auth := (*r).Header.Get("Authorization")
+	if auth != os.Getenv(UploadKey) {
 		_ = json.NewEncoder(w).Encode(ResponseError{
 			Status:  1,
 			Message: "Not authorized.",
 		})
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
 	maxSize, _ := strconv.ParseInt(os.Getenv(MaxSizeBytes), 0, 64)
-	parseErr := r.ParseMultipartForm(maxSize)
+	parseErr := (*r).ParseMultipartForm(maxSize)
 	if parseErr != nil {
 		_ = json.NewEncoder(w).Encode(ResponseError{
 			Status:  1,
@@ -39,7 +39,7 @@ func HandleUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 
 
-	file, handler, err := r.FormFile("file") // Retrieve the file from form data
+	file, handler, err := (*r).FormFile("file") // Retrieve the file from form data
 	if err != nil {
 		_ = json.NewEncoder(w).Encode(ResponseError{
 			Status:  1,
@@ -119,6 +119,9 @@ func HandleUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 func ServeFileOrStats(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	applyCORSHeaders(&w)
+	if (*r).Method == "OPTIONS" {
+		return
+	}
 	if strings.ToLower(ps.ByName("name")) == "stats" {
 		ServeStats(w, r, ps)
 		return
@@ -183,7 +186,6 @@ func ServeStats(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 	applyCORSHeaders(&w)
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
-	w.Header().Set("Content-Type", "application/json")
 	n, _ := strconv.ParseInt(os.Getenv(UploadDirMaxSize), 0, 64)
 	max, _ := strconv.ParseInt(os.Getenv(MaxSizeBytes), 0, 64)
 	min, _ := strconv.ParseInt(os.Getenv(MinSizeBytes), 0, 64)

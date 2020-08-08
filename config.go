@@ -42,9 +42,9 @@ func ValidateEnv() {
 			}
 		case Port:
 			if os.Getenv(v) == "" {
-				e := os.Setenv(v, "3030")
+				e := os.Setenv(v, "7250")
 				if e != nil {
-					panic("Could not set default port to 3030")
+					panic("Could not set default port to 7250")
 				}
 			} else {
 				n, e := strconv.ParseInt(v, 0, 64)
@@ -55,7 +55,7 @@ func ValidateEnv() {
 			break
 		case UploadKey:
 			if os.Getenv(v) == "" {
-				panic("Upload key must be set.")
+				panic(fmt.Sprintf("%s must be set.", v))
 			}
 			break
 		case MinSizeBytes, MaxSizeBytes, UploadDirMaxSize:

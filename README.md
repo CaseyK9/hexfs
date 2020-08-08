@@ -13,7 +13,7 @@ yo mama jokes belong in 2016
 - Update posting to Discord webhook URL (monitor file additions/deletions)
 - Custom 404 images
 - Upload directory size limit
-- Made in Go 
+- Extremely low memory usage
 
 ### How to run
 
@@ -29,7 +29,7 @@ concerning docker, idk maybe later
 
 - all environment variables will be prefixed with `PIXELSFS` so they don't collide with other variables
 - environment variable names:
-    - `PIXELSFS_PORT` (optional, default: 3030)
+    - `PIXELSFS_PORT` (optional, default: 7250)
     - `PIXELSFS_UPLOAD_KEY` (required)
     - `PIXELSFS_MIN_SIZE_BYTES` (optional, default: 512B)
     - `PIXELSFS_MAX_SIZE_BYTES` (optional, default: 50MB)
