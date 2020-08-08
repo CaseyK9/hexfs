@@ -57,7 +57,7 @@ func HandleDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 		return
 	}
 	if os.Getenv(DiscordWebhookURL) != "" {
-		webhookErr := SendToWebhook(fmt.Sprintf("**%s** deleted. Freed **%s** of space.", ps.ByName("name"), ByteCountSI(uint64(fi.Size()))))
+		webhookErr := SendToWebhook(fmt.Sprintf("%s deleted. Freed **%s** of space.", ps.ByName("name"), ByteCountSI(uint64(fi.Size()))))
 		if webhookErr != nil {
 			fmt.Println("Webhook failed to send: " + webhookErr.Error())
 		}
@@ -172,7 +172,7 @@ func HandleUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		if sendStr != "" {
 			sendStr += "/"
 		}
-		webhookErr := SendToWebhook(fmt.Sprintf("**%s%s** created. Wrote **%s** of data. (Total %% of space used: %.2f%%)", sendStr, fileId + filepath.Ext(handler.Filename), ByteCountSI(uint64(written)), float64(sizeOfUploadDir) / float64(n)))
+		webhookErr := SendToWebhook(fmt.Sprintf("%s%s created. Wrote **%s** of data. (Total %% of space used: %.2f%%)", sendStr, fileId + filepath.Ext(handler.Filename), ByteCountSI(uint64(written)), float64(sizeOfUploadDir) / float64(n)))
 		if webhookErr != nil {
 			fmt.Println("Webhook failed to send: " + webhookErr.Error())
 		}
