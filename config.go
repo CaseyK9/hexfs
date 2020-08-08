@@ -8,13 +8,13 @@ import (
 )
 
 const (
-	Port = "PIXELSFS_PORT"
-	UploadKey = "PIXELSFS_UPLOAD_KEY"
-	MinSizeBytes = "PIXELSFS_MIN_SIZE_BYTES"
-	MaxSizeBytes = "PIXELSFS_MAX_SIZE_BYTES"
-	DiscordWebhookURL = "PIXELSFS_DISCORD_WEBHOOK"
-	UploadDirMaxSize = "PIXELSFS_UPLOAD_DIR_MAX_SIZE"
-	UploadDirPath = "PIXELSFS_UPLOAD_DIR_PATH"
+	Port = "PSE_PORT"
+	UploadKey = "PSE_UPLOAD_KEY"
+	MinSizeBytes = "PSE_MIN_SIZE_BYTES"
+	MaxSizeBytes = "PSE_MAX_SIZE_BYTES"
+	DiscordWebhookURL = "PSE_DISCORD_WEBHOOK"
+	UploadDirMaxSize = "PSE_UPLOAD_DIR_MAX_SIZE"
+	UploadDirPath = "PSE_UPLOAD_DIR_PATH"
 )
 
 func ValidateEnv() {

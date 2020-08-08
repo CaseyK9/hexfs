@@ -1,15 +1,13 @@
-## PixelsFS Storage Engine
+## Pixels Storage Engine
 
 yo mama jokes belong in 2016 
 
-[demo site with optional front-end](https://pixels.moe)
+[in production at pixels.moe](https://pixels.moe)
 
 ### Features
 
 - Private uploading (only you know the key for uploading files; viewing them is public)
 - No dependencies on databases or external cloud storage services, meaning you have full control over your files
-- Basic protection against DoS attacks & XSS scripts (use with cloudflare for optimal results)
-- File deletion support
 - Update posting to Discord webhook URL (monitor file additions/deletions)
 - Custom 404 images
 - Upload directory size limit
@@ -28,20 +26,20 @@ concerning docker, idk maybe later
 
 ### Notes
 
-- all environment variables will be prefixed with `PIXELSFS` so they don't collide with other variables
+- all environment variables will be prefixed with `PSE` so they don't collide with other variables
 - environment variable names:
-    - `PIXELSFS_PORT` (optional, default: 7250)
-    - `PIXELSFS_UPLOAD_KEY` (required)
-    - `PIXELSFS_MIN_SIZE_BYTES` (optional, default: 512B)
-    - `PIXELSFS_MAX_SIZE_BYTES` (optional, default: 50MB)
-    - `PIXELSFS_DISCORD_WEBHOOK` (optional, should be discord webhook url)
-    - `PIXELSFS_UPLOAD_DIR_MAX_SIZE` (optional, default: 10GB)
-    - `PIXELSFS_UPLOAD_DIR_PATH` (optional, default: working directory + /uploads)
+    - `PSE_PORT` (optional, default: 7250)
+    - `PSE_UPLOAD_KEY` (required)
+    - `PSE_MIN_SIZE_BYTES` (optional, default: 512B)
+    - `PSE_MAX_SIZE_BYTES` (optional, default: 50MB)
+    - `PSE_DISCORD_WEBHOOK` (optional, should be discord webhook url)
+    - `PSE_UPLOAD_DIR_MAX_SIZE` (optional, default: 10GB)
+    - `PSE_UPLOAD_DIR_PATH` (optional, default: working directory + /uploads)
     
 ### Endpoints
 
 - POST / 
-    - with Authorization header containing value you set for `PIXELSFS_UPLOAD_KEY`
+    - with Authorization header containing value you set for `PSE_UPLOAD_KEY`
     - and `multipart/form-data` containing field `file`
     
 Returns
@@ -81,7 +79,7 @@ Replace every placeholder (marked with >> CONTENT <<) with your own domain.
 ```json
 {
   "Version": "13.0.1",
-  "Name": "PixelsFS ShareX",
+  "Name": "Pixels Storage Engine ShareX",
   "DestinationType": "ImageUploader, TextUploader, FileUploader",
   "RequestMethod": "POST",
   "RequestURL": ">> YOUR ENDPOINT HERE, NO TRAILING SLASH <<",
