@@ -77,7 +77,7 @@ func ValidateEnv() {
 					break
 				case UploadDirMaxSize:
 					fmt.Println("Setting " + v + " to 10 GiB")
-					e := os.Setenv(UploadDirMaxSize, "10485760")
+					e := os.Setenv(UploadDirMaxSize, "10737418240")
 					if e != nil {
 						panic("Could not set " + UploadDirMaxSize)
 					}
