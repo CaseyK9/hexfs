@@ -7,5 +7,5 @@ import (
 
 func IsAuthorized(r *http.Request) bool {
 	auth := (*r).Header.Get("Authorization")
-	return auth != os.Getenv(UploadKey)
+	return auth == os.Getenv(UploadKey)
 }
