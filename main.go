@@ -57,7 +57,7 @@ func HandleDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 		return
 	}
 	if os.Getenv(DiscordWebhookURL) != "" {
-		webhookErr := SendToWebhook(fmt.Sprintf("**%s** deleted. Freed **%s** of space.", ps.ByName("name"), ByteCountIEC(uint64(fi.Size()))))
+		webhookErr := SendToWebhook(fmt.Sprintf("**%s** deleted. Freed **%s** of space.", ps.ByName("name"), ByteCountSI(uint64(fi.Size()))))
 		if webhookErr != nil {
 			fmt.Println("Webhook failed to send: " + webhookErr.Error())
 		}
