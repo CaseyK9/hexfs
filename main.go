@@ -21,7 +21,7 @@ const (
 	VERSION = "1.0.0"
 )
 
-var SizeOfUploadDir int64
+var sizeOfUploadDir int64
 
 func HandleDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	applyCORSHeaders(&w)
@@ -40,6 +40,14 @@ func HandleDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 		})
 		return
 	}
+	fi, statErr := os.Stat(path.Join(os.Getenv(UploadDirPath), ps.ByName("name")))
+	if statErr != nil {
+		_ = json.NewEncoder(w).Encode(ResponseError{
+			Status:  1,
+			Message: "Failed to get information about file. " + statErr.Error(),
+		})
+		return
+	}
 	err := os.Remove(path.Join(os.Getenv(UploadDirPath), ps.ByName("name")))
 	if err != nil {
 		_ = json.NewEncoder(w).Encode(ResponseError{
@@ -49,11 +57,12 @@ func HandleDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 		return
 	}
 	if os.Getenv(DiscordWebhookURL) != "" {
-		webhookErr := SendToWebhook(fmt.Sprintf("%s deleted.", ps.ByName("name")))
+		webhookErr := SendToWebhook(fmt.Sprintf("**%s** deleted. Freed **%s** of space.", ps.ByName("name"), ByteCountIEC(uint64(fi.Size()))))
 		if webhookErr != nil {
 			fmt.Println("Webhook failed to send: " + webhookErr.Error())
 		}
 	}
+	sizeOfUploadDir -= fi.Size()
 	_ = json.NewEncoder(w).Encode(EmptyResponse{
 		Status:  0,
 	})
@@ -70,6 +79,7 @@ func HandleUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		})
 		return
 	}
+
 	maxSize, _ := strconv.ParseInt(os.Getenv(MaxSizeBytes), 0, 64)
 	parseErr := (*r).ParseMultipartForm(maxSize)
 	if parseErr != nil {
@@ -80,7 +90,6 @@ func HandleUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
-
 	file, handler, err := (*r).FormFile("file") // Retrieve the file from form data
 	if err != nil {
 		_ = json.NewEncoder(w).Encode(ResponseError{
@@ -90,6 +99,7 @@ func HandleUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
+	// Close form file
 	defer func() {
 		fileCloseErr := file.Close()
 		if fileCloseErr != nil {
@@ -115,7 +125,7 @@ func HandleUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 
 	n, _ := strconv.ParseInt(os.Getenv(UploadDirMaxSize), 0, 64)
-	if SizeOfUploadDir + handler.Size > n {
+	if sizeOfUploadDir+ handler.Size > n {
 		_ = json.NewEncoder(w).Encode(ResponseError{
 			Status:  1,
 			Message: "Upload directory would exceed max size with this upload.",
@@ -140,6 +150,7 @@ func HandleUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		})
 		return
 	}
+	// Close opened file on disk
 	defer func() {
 		fileCloseErr := f.Close()
 		if fileCloseErr != nil {
@@ -155,14 +166,13 @@ func HandleUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
-	SizeOfUploadDir += written
-
+	sizeOfUploadDir += written
 	if os.Getenv(DiscordWebhookURL) != "" {
 		sendStr := os.Getenv(Endpoint)
 		if sendStr != "" {
 			sendStr += "/"
 		}
-		webhookErr := SendToWebhook(fmt.Sprintf("%s%s created. Space used: %.2f%%", sendStr, fileId + filepath.Ext(handler.Filename), float64(SizeOfUploadDir) / float64(n)))
+		webhookErr := SendToWebhook(fmt.Sprintf("**%s%s** created. Wrote **%s** of data. (Total %% of space used: %.2f%%)", sendStr, fileId + filepath.Ext(handler.Filename), ByteCountSI(uint64(written)), float64(sizeOfUploadDir) / float64(n)))
 		if webhookErr != nil {
 			fmt.Println("Webhook failed to send: " + webhookErr.Error())
 		}
@@ -174,6 +184,7 @@ func HandleUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		Size:   handler.Size,
 	})
 }
+
 func ServeFileOrStats(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	applyCORSHeaders(&w)
 	if (*r).Method == "OPTIONS" {
@@ -263,9 +274,9 @@ func ServeStats(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 		MemAllocated:   ByteCountSI(mem.Alloc),
 		MaxFileSize:    ByteCountSI(uint64(max)),
 		MinFileSize:    ByteCountSI(uint64(min)),
-		SpaceMax: 			n,
-		SpaceUsed:      SizeOfUploadDir,
-		Version:				VERSION,
+		SpaceMax:       n,
+		SpaceUsed:      sizeOfUploadDir,
+		Version:        VERSION,
 	})
 	return
 }
@@ -286,7 +297,7 @@ func main() {
 	if e != nil {
 		panic(e)
 	}
-	SizeOfUploadDir = s
+	sizeOfUploadDir = s
 	router := httprouter.New()
 	router.GET("/:name", ServeFileOrStats)
 	router.POST("/", HandleUpload)
