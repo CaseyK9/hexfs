@@ -17,6 +17,10 @@ import (
 	"sync"
 )
 
+const (
+	VERSION = "1.0.0"
+)
+
 var SizeOfUploadDir int64
 
 func HandleDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -244,6 +248,7 @@ func ServeStats(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 		MinFileSize:    ByteCountSI(uint64(min)),
 		SpaceMax: 			n,
 		SpaceUsed:      SizeOfUploadDir,
+		Version:				VERSION,
 	})
 	return
 }

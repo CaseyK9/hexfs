@@ -63,6 +63,7 @@ type StatsResponseSuccess struct {
 	SpaceUsed int64 `json:"space_used"`
 	MaxFileSize string `json:"max_file_size"`
 	MinFileSize string `json:"min_file_size"`
+    Version string `json:"version"`
 }
 ```
 
