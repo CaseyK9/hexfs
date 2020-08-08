@@ -19,6 +19,7 @@ yo mama jokes belong in 2016
 
 - Clone
 - Build
+- Create .env file in project root and populate with variables
 - Make a service (using systemd or smth idfk)
 - Start service
 - now get money and bitches

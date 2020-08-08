@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
+	"github.com/joho/godotenv"
 	"io"
 	"log"
 	"net/http"
@@ -209,6 +210,10 @@ func applyCORSHeaders(w *http.ResponseWriter) {
 }
 
 func main() {
+	envErr := godotenv.Load()
+	if envErr != nil {
+		panic("Cannot find a .env file in the project root.")
+	}
 	ValidateEnv()
 	s, e := DirSize(os.Getenv(UploadDirPath))
 	if e != nil {
