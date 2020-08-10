@@ -1,9 +1,5 @@
 ## Pixels Storage Engine
 
-yo mama jokes belong in 2016 
-
-[in production at pixels.moe](https://pixels.moe)
-
 ### Features
 
 - Private uploading (only you know the key for uploading files; viewing them is public)
@@ -20,9 +16,6 @@ yo mama jokes belong in 2016
 - Create .env file in project root and populate with variables
 - Make a service (using systemd or smth idfk)
 - Start service
-- now get money and bitches
-
-concerning docker, idk maybe later
 
 ### Notes
 
