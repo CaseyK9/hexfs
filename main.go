@@ -184,13 +184,12 @@ func HandleUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		fullFileUrl = baseUrl.String()
 	}
 
-
 	if os.Getenv(DiscordWebhookURL) != "" {
 		sendStr := fileName
 		if fullFileUrl != "" {
 			sendStr = fullFileUrl
 		}
-		webhookErr := SendToWebhook(fmt.Sprintf("%s%s created. Wrote **%s** of data. (Total %% of space used: %.2f%%)", sendStr, fileName, ByteCountSI(uint64(written)), float64(sizeOfUploadDir) / float64(n)))
+		webhookErr := SendToWebhook(fmt.Sprintf("%s created. Wrote **%s** of data. (Total %% of space used: %.2f%%)", sendStr, ByteCountSI(uint64(written)), float64(sizeOfUploadDir) / float64(n)))
 		if webhookErr != nil {
 			fmt.Println("Webhook failed to send: " + webhookErr.Error())
 		}
