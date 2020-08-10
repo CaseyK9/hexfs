@@ -3,6 +3,7 @@ package main
 type UploadResponseSuccess struct {
 	Status int `json:"status"`
 	FileId string `json:"file_id"`
+	FullFileUrl string `json:"full_file_url"`
 	Size int64 `json:"size"`
 }
 

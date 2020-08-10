@@ -8,6 +8,7 @@
 - Custom 404 images
 - Upload directory size limit
 - Extremely low memory usage
+- 
 
 ### How to run
 
@@ -28,7 +29,7 @@
     - `PSE_DISCORD_WEBHOOK` (optional, should be discord webhook url)
     - `PSE_UPLOAD_DIR_MAX_SIZE` (optional, default: 10GB)
     - `PSE_UPLOAD_DIR_PATH` (optional, default: working directory + /uploads)
-    - `PSE_ENDPOINT` (optional, set this to append URL before file name in webhook.)
+    - `PSE_ENDPOINT` (optional, set this to append URL before file name in webhook and to get a `full_file_url` key in the file upload response. **Make sure this is correctly formatted or else files will fail to upload.**)
     
 ### Endpoints
 
@@ -42,6 +43,10 @@ type UploadResponseSuccess struct {
 	Status int `json:"status"`
 	FileId string `json:"file_id"`
 	Size int64 `json:"size"`
+    // FullFileUrl only provided if PSE_ENDPOINT is set. 
+    // Otherwise this will equal a string with length 0.
+    // Useful for programs like MagicCap, or if you don't want to use JSON parsing in ShareX.
+	FullFileUrl string `json:"full_file_url"`
 }
 ```
     
@@ -69,7 +74,7 @@ type StatsResponseSuccess struct {
     
 ### ShareX
 
-Replace every placeholder (marked with >> CONTENT <<) with your own domain.
+Use this ShareX template.
 
 ```json
 {
@@ -79,10 +84,9 @@ Replace every placeholder (marked with >> CONTENT <<) with your own domain.
   "RequestMethod": "POST",
   "RequestURL": ">> YOUR ENDPOINT HERE, NO TRAILING SLASH <<",
   "Headers": {
-    "Authorization": ">> YOUR KEY HERE <<"
+    "Authorization": "Your Key Here"
   },
   "Body": "MultipartFormData",
-  "FileFormName": "file",
-  "URL": ">> YOUR ENDPOINT HERE, NO TRAILING SLASH <</$json:name$"
+  "FileFormName": "file"
 }
 ```

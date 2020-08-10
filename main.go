@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -167,12 +168,29 @@ func HandleUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 
 	sizeOfUploadDir += written
-	if os.Getenv(DiscordWebhookURL) != "" {
-		sendStr := os.Getenv(Endpoint)
-		if sendStr != "" {
-			sendStr += "/"
+	fileName := fileId + filepath.Ext(handler.Filename)
+
+	fullFileUrl := ""
+	if os.Getenv(Endpoint) != "" {
+		baseUrl, urlErr := url.Parse(os.Getenv(Endpoint))
+		if urlErr != nil {
+			_ = json.NewEncoder(w).Encode(ResponseError{
+				Status:  1,
+				Message: "Malformed endpoint. " + urlErr.Error(),
+			})
+			return
 		}
-		webhookErr := SendToWebhook(fmt.Sprintf("%s%s created. Wrote **%s** of data. (Total %% of space used: %.2f%%)", sendStr, fileId + filepath.Ext(handler.Filename), ByteCountSI(uint64(written)), float64(sizeOfUploadDir) / float64(n)))
+		baseUrl.Path = path.Join(baseUrl.Path, fileName)
+		fullFileUrl = baseUrl.String()
+	}
+
+
+	if os.Getenv(DiscordWebhookURL) != "" {
+		sendStr := fileName
+		if fullFileUrl != "" {
+			sendStr = fullFileUrl
+		}
+		webhookErr := SendToWebhook(fmt.Sprintf("%s%s created. Wrote **%s** of data. (Total %% of space used: %.2f%%)", sendStr, fileName, ByteCountSI(uint64(written)), float64(sizeOfUploadDir) / float64(n)))
 		if webhookErr != nil {
 			fmt.Println("Webhook failed to send: " + webhookErr.Error())
 		}
@@ -180,8 +198,9 @@ func HandleUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	_ = json.NewEncoder(w).Encode(UploadResponseSuccess{
 		Status: 0,
-		FileId: fileId + filepath.Ext(handler.Filename),
-		Size:   handler.Size,
+		FileId: fileName,
+		FullFileUrl: fullFileUrl,
+		Size: handler.Size,
 	})
 }
 
