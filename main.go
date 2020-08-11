@@ -81,6 +81,15 @@ func HandleUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
+	contentTypeHeader := (*r).Header.Get("Content-Type")
+	if !strings.Contains(contentTypeHeader, "multipart/form-data") {
+		_ = json.NewEncoder(w).Encode(ResponseError{
+			Status:  1,
+			Message: "Request's Content-Type must be multipart/form-data.",
+		})
+		return
+	}
+
 	maxSize, _ := strconv.ParseInt(os.Getenv(MaxSizeBytes), 0, 64)
 	parseErr := (*r).ParseMultipartForm(maxSize)
 	if parseErr != nil {
@@ -311,6 +320,11 @@ func main() {
 		panic("Cannot find a .env file in the project root.")
 	}
 	ValidateEnv()
+	if _, err := os.Stat(os.Getenv(UploadDirPath)); err != nil {
+		if os.IsNotExist(err) {
+			panic("Directory " + os.Getenv(UploadDirPath) + " does not exist. Create it and try again.")
+		}
+	}
 	s, e := DirSize(os.Getenv(UploadDirPath))
 	if e != nil {
 		panic(e)
