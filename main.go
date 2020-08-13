@@ -16,6 +16,11 @@ const (
 
 var SizeOfUploadDir int64
 
+func PreprocessHTTP(w http.ResponseWriter, r *http.Request) {
+
+
+}
+
 func main() {
 	envErr := godotenv.Load()
 	if envErr != nil {
@@ -33,23 +38,20 @@ func main() {
 	}
 	SizeOfUploadDir = s
 	router := httprouter.New()
+	router.GET("/:name", ServeIndex)
+	router.POST("/", ServeUpload)
+	router.POST("/delete/:name", ServeDelete)
 	server := http.Server{
 		Addr: ":" + os.Getenv(Port),
 		ReadHeaderTimeout: time.Second * 5000,
 		WriteTimeout: time.Second * 5000,
-		Handler: router,
-	}
-	router.GlobalOPTIONS = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Access-Control-Request-Method") != "" {
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", (*r).Header.Get("Access-Control-Request-Headers"))
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
-		}
-		w.WriteHeader(http.StatusNoContent)
-	})
-	router.GET("/:name", ServeIndex)
-	router.POST("/", ServeUpload)
-	router.POST("/delete/:name", ServeDelete)
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
+			router.ServeHTTP(w, r)
+		}),
+	}
 	fmt.Println("Ready to serve requests on port " + os.Getenv(Port))
 	log.Fatal(server.ListenAndServe())
 }
