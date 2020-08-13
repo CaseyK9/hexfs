@@ -1,2 +1,4 @@
 .idea
 .env
+!uploads/404.png
+uploads/
