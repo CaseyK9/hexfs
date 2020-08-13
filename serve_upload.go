@@ -29,12 +29,9 @@ func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
-	auth := IsAuthorized(r)
-	if !auth {
-		SendJSONResponse(&w, ResponseError{
-			Status:  1,
-			Message: "Not authorized to upload.",
-		})
+	authErr := IsAuthorized(r)
+	if authErr != nil {
+		SendJSONResponse(&w, authErr)
 		return
 	}
 

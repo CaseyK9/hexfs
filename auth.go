@@ -5,7 +5,14 @@ import (
 	"os"
 )
 
-func IsAuthorized(r *http.Request) bool {
+func IsAuthorized(r *http.Request) *ResponseError {
 	auth := (*r).Header.Get("Authorization")
-	return auth == os.Getenv(UploadKey)
+	if auth != os.Getenv(UploadKey) {
+		return &ResponseError{
+			Status:  1,
+			Message: "Not authorized.",
+		}
+	} else {
+		return nil
+	}
 }

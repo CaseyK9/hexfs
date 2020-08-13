@@ -10,12 +10,9 @@ import (
 
 func ServeDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ApplyCORSHeaders(&w)
-	auth := IsAuthorized(r)
-	if !auth {
-		SendJSONResponse(&w, ResponseError{
-			Status:  1,
-			Message: "Not authorized to delete.",
-		})
+	authErr := IsAuthorized(r)
+	if authErr != nil {
+		SendJSONResponse(&w, authErr)
 		return
 	}
 	if ps.ByName("name") == "404.png" {
