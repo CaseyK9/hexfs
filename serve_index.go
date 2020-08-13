@@ -8,7 +8,6 @@ import (
 
 func ServeIndex(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	if (*r).Method == "OPTIONS" {
-		w.WriteHeader(http.StatusOK)
 		return
 	}
 	switch strings.ToLower(ps.ByName("name")) {
