@@ -14,8 +14,6 @@ import (
 )
 
 func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	ApplyCORSHeaders(&w)
-
 	maxSize, _ := strconv.ParseInt(os.Getenv(MaxSizeBytes), 0, 64)
 	// Add 1024 bytes for headers, etc.
 	r.Body = http.MaxBytesReader(w, r.Body, maxSize+1024)

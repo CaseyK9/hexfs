@@ -39,6 +39,18 @@ func main() {
 		WriteTimeout: time.Second * 5000,
 		Handler: router,
 	}
+	router.GlobalOPTIONS = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Access-Control-Request-Method") != "" {
+			// Set CORS headers
+			header := w.Header()
+			header.Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			header.Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+			header.Set("Access-Control-Allow-Origin", "*")
+		}
+
+		// Adjust status code to 204
+		w.WriteHeader(http.StatusNoContent)
+	})
 	router.GET("/:name", ServeIndex)
 	router.POST("/", ServeUpload)
 	router.POST("/delete/:name", ServeDelete)

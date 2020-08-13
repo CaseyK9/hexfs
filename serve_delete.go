@@ -9,7 +9,6 @@ import (
 )
 
 func ServeDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	ApplyCORSHeaders(&w)
 	authErr := IsAuthorized(r)
 	if authErr != nil {
 		SendJSONResponse(&w, authErr)

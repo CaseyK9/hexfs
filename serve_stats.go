@@ -9,7 +9,6 @@ import (
 )
 
 func ServeStats(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
-	ApplyCORSHeaders(&w)
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 	n, _ := strconv.ParseInt(os.Getenv(UploadDirMaxSize), 0, 64)
