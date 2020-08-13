@@ -15,14 +15,6 @@ import (
 
 func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	ApplyCORSHeaders(&w)
-	auth := IsAuthorized(r)
-	if !auth {
-		SendJSONResponse(&w, ResponseError{
-			Status:  1,
-			Message: "Not authorized to upload.",
-		})
-		return
-	}
 
 	maxSize, _ := strconv.ParseInt(os.Getenv(MaxSizeBytes), 0, 64)
 	// Add 1024 bytes for headers, etc.
@@ -33,6 +25,15 @@ func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		SendJSONResponse(&w, ResponseError{
 			Status:  1,
 			Message: "File exceeds maximum size allowed.",
+		})
+		return
+	}
+
+	auth := IsAuthorized(r)
+	if !auth {
+		SendJSONResponse(&w, ResponseError{
+			Status:  1,
+			Message: "Not authorized to upload.",
 		})
 		return
 	}
