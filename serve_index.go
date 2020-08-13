@@ -7,7 +7,6 @@ import (
 )
 
 func ServeIndex(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	ApplyCORSHeaders(&w)
 	if (*r).Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
 		return
