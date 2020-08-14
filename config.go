@@ -34,7 +34,7 @@ func ValidateEnv() {
 				if pathErr != nil {
 					panic("Cannot determine current working directory.")
 				}
-				fmt.Println("Setting uploads folder to" + path.Join(p, "uploads"))
+				fmt.Println("Setting uploads folder to " + path.Join(p, "uploads"))
 				e := os.Setenv(v, path.Join(p, "uploads"))
 				if e != nil {
 					panic("Could not set default upload directory path.")

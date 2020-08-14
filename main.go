@@ -11,15 +11,10 @@ import (
 )
 
 const (
-	VERSION = "1.0.1"
+	VERSION = "1.1.0"
 )
 
 var SizeOfUploadDir int64
-
-func PreprocessHTTP(w http.ResponseWriter, r *http.Request) {
-
-
-}
 
 func main() {
 	envErr := godotenv.Load()
@@ -38,7 +33,22 @@ func main() {
 	}
 	SizeOfUploadDir = s
 	router := httprouter.New()
-	router.GET("/:name", ServeIndex)
+	router.HandleMethodNotAllowed = true
+	router.MethodNotAllowed = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		SendJSONResponse(&w, ResponseError{
+			Status:  1,
+			Message: "Method not allowed.",
+		})
+	})
+	router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		SendJSONResponse(&w, ResponseError{
+			Status:  1,
+			Message: "Page not found.",
+		})
+	})
+
+	router.GET("/:id", ServeIndex)
+	router.GET("/:id/:name", ServeFile)
 	router.POST("/", ServeUpload)
 	router.POST("/delete/:name", ServeDelete)
 	server := http.Server{
@@ -48,7 +58,7 @@ func main() {
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
+			w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization")
 			router.ServeHTTP(w, r)
 		}),
 	}

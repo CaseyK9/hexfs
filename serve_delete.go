@@ -14,22 +14,18 @@ func ServeDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		SendJSONResponse(&w, authErr)
 		return
 	}
-	if ps.ByName("name") == "404.png" {
-		SendJSONResponse(&w, ResponseError{
-			Status:  1,
-			Message: "This file is reserved and cannot be deleted.",
-		})
-		return
-	}
-	fi, statErr := os.Stat(path.Join(os.Getenv(UploadDirPath), ps.ByName("name")))
+
+	fPath := path.Join(os.Getenv(UploadDirPath), ps.ByName("name"))
+	_, statErr := os.Stat(fPath)
 	if statErr != nil {
 		SendJSONResponse(&w, ResponseError{
 			Status:  1,
-			Message: "Failed to get information about file. " + statErr.Error(),
+			Message: "File ID does not exist.",
 		})
 		return
 	}
-	err := os.Remove(path.Join(os.Getenv(UploadDirPath), ps.ByName("name")))
+	sizeOfDir, _ := DirSize(fPath)
+	err := os.RemoveAll(fPath)
 	if err != nil {
 		SendJSONResponse(&w, ResponseError{
 			Status:  1,
@@ -38,12 +34,12 @@ func ServeDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 	if os.Getenv(DiscordWebhookURL) != "" {
-		webhookErr := SendToWebhook(fmt.Sprintf("%s deleted. Freed **%s** of space.", ps.ByName("name"), ByteCountSI(uint64(fi.Size()))))
+		webhookErr := SendToWebhook(fmt.Sprintf("File ID %s deleted. Freed **%s** of space.", ps.ByName("name"), ByteCountSI(uint64(sizeOfDir))))
 		if webhookErr != nil {
 			fmt.Println("Webhook failed to send: " + webhookErr.Error())
 		}
 	}
-	SizeOfUploadDir -= fi.Size()
+	SizeOfUploadDir -= sizeOfDir
 	SendJSONResponse(&w, EmptyResponse{
 		Status:  0,
 	})

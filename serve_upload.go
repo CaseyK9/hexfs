@@ -8,10 +8,11 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"sync"
 )
+
+const IdLen = 12
 
 func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	maxSize, _ := strconv.ParseInt(os.Getenv(MaxSizeBytes), 0, 64)
@@ -79,29 +80,52 @@ func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	randomStringChan := make(chan string, 1)
 	go func() {
 		wg.Add(1)
-		RandStringBytesMaskImprSrcUnsafe(8, randomStringChan, func() { wg.Done() })
+		RandStringBytesMaskImprSrcUnsafe(IdLen, randomStringChan, func() { wg.Done() })
 	}()
 	wg.Wait()
 
 	fileId := <- randomStringChan
+	filePath := path.Join(os.Getenv(UploadDirPath), fileId)
+	mkdirErr := os.Mkdir(filePath, 0755)
+	if mkdirErr != nil {
+		SendJSONResponse(&w, ResponseError{
+			Status:  1,
+			Message: "Could not create directory for the file. " + mkdirErr.Error(),
+		})
+		return
+	}
 
-	f, openErr := os.OpenFile(path.Join(os.Getenv(UploadDirPath), fmt.Sprintf("%s%s", fileId, filepath.Ext(handler.Filename))), os.O_WRONLY|os.O_CREATE, 0666)
+	f, openErr := os.OpenFile(path.Join(filePath, handler.Filename), os.O_WRONLY|os.O_CREATE, 0666)
 	if openErr != nil {
+		rmErr := os.RemoveAll(filePath)
+		if rmErr != nil {
+			SendJSONResponse(&w, ResponseError{
+				Status:  1,
+				Message: "Failed to remove directory after failing to open file. RemoveAll err: " + rmErr.Error() + " OpenFile err: " + openErr.Error(),
+			})
+			return
+		}
 		SendJSONResponse(&w, ResponseError{
 			Status:  1,
 			Message: "There was a problem trying to open the file. " + openErr.Error(),
 		})
 		return
 	}
-	// Close opened file on disk
+	// Close opened file on disk. Never evaluates an error.
 	defer func() {
-		fileCloseErr := f.Close()
-		if fileCloseErr != nil {
-			fmt.Println("Failed to close file on disk: " + fileCloseErr.Error())
-		}
+		_ = f.Close()
 	}()
+
 	written, writeErr := io.Copy(f, file)
 	if writeErr != nil {
+		rmErr := os.RemoveAll(filePath)
+		if rmErr != nil {
+			SendJSONResponse(&w, ResponseError{
+				Status:  1,
+				Message: "Failed to remove directory after failing writing file to disk. RemoveAll err: " + rmErr.Error() + " Copy err: " + writeErr.Error(),
+			})
+			return
+		}
 		SendJSONResponse(&w, ResponseError{
 			Status:  1,
 			Message: "There was a problem writing the file to disk. " + writeErr.Error(),
@@ -110,7 +134,6 @@ func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 
 	SizeOfUploadDir += written
-	fileName := fileId + filepath.Ext(handler.Filename)
 
 	fullFileUrl := ""
 	if os.Getenv(Endpoint) != "" {
@@ -122,12 +145,12 @@ func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 			})
 			return
 		}
-		baseUrl.Path = path.Join(baseUrl.Path, fileName)
+		baseUrl.Path = path.Join(baseUrl.Path, fileId, handler.Filename)
 		fullFileUrl = baseUrl.String()
 	}
 
 	if os.Getenv(DiscordWebhookURL) != "" {
-		sendStr := fileName
+		sendStr := path.Join(fileId, handler.Filename)
 		if fullFileUrl != "" {
 			sendStr = fullFileUrl
 		}
@@ -139,7 +162,7 @@ func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	SendJSONResponse(&w, UploadResponseSuccess{
 		Status: 0,
-		FileId: fileName,
+		FileLocation: path.Join(fileId, handler.Filename),
 		FullFileUrl: fullFileUrl,
 		Size: handler.Size,
 	})

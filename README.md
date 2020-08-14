@@ -1,3 +1,5 @@
 ## Pixels Storage Engine
 
-Learn more: https://pixels.moe/about.html
+Private filehost with ShareX/MagicCap compatibility.
+
+Learn more and install: https://pse.vysion.cc

@@ -10,14 +10,17 @@ func ServeIndex(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	if (*r).Method == "OPTIONS" {
 		return
 	}
-	switch strings.ToLower(ps.ByName("name")) {
+	switch strings.ToLower(ps.ByName("id")) {
 	case "stats":
 		ServeStats(w, r, ps)
 		break
 	case "ping":
-		ServePing(w)
+		ServePing(w, r, ps)
 		break
 	default:
-		ServeFile(w, ps)
+		SendJSONResponse(&w, ResponseError{
+			Status:  1,
+			Message: "Page not found.",
+		})
 	}
 }
