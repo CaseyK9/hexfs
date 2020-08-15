@@ -27,6 +27,13 @@ func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		})
 		return
 	}
+	if !HasContentType(r, "multipart/form-data") {
+		SendJSONResponse(&w, ResponseError{
+			Status:  1,
+			Message: "Content-Type must equal multipart/form-data.",
+		})
+		return
+	}
 
 	authErr := IsAuthorized(r)
 	if authErr != nil {
