@@ -48,7 +48,7 @@ func ValidateEnv() {
 					panic("Could not set default port to 7250")
 				}
 			} else {
-				n, e := strconv.ParseInt(v, 0, 64)
+				n, e := strconv.ParseInt(os.Getenv(v), 0, 64)
 				if e != nil || n > 65535 || n <= 0 {
 					panic("PORT is not a valid number/not between 1-65535.")
 				}
