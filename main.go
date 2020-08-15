@@ -35,7 +35,10 @@ func main() {
 	ValidateEnv()
 	err := os.Mkdir(os.Getenv(UploadDirPath), 0755)
 	if err != nil {
-		panic("Directory " + os.Getenv(UploadDirPath) + " was attempted to be created by PSE, but failed. " + err.Error())
+		if !os.IsExist(err) {
+			panic("Directory " + os.Getenv(UploadDirPath) + " was attempted to be created by PSE, but failed. " + err.Error())
+		}
+		// is os.Exist is true then the directory already exists.
 	}
 	s, e := DirSize(os.Getenv(UploadDirPath))
 	if e != nil {
