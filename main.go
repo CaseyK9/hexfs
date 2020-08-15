@@ -36,7 +36,7 @@ func main() {
 	err := os.Mkdir(os.Getenv(UploadDirPath), 0755)
 	if err != nil {
 		if !os.IsExist(err) {
-			panic("Directory " + os.Getenv(UploadDirPath) + " was attempted to be created by PSE, but failed. " + err.Error())
+			panic("Directory " + os.Getenv(UploadDirPath) + " was going to be created by Pixels Storage Engine, but failed. " + err.Error())
 		}
 		// is os.Exist is true then the directory already exists.
 	}
