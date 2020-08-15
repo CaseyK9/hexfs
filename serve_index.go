@@ -18,9 +18,6 @@ func ServeIndex(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		ServePing(w, r, ps)
 		break
 	default:
-		SendJSONResponse(&w, ResponseError{
-			Status:  1,
-			Message: "Page not found.",
-		})
+		NotFoundHandler(w, r)
 	}
 }

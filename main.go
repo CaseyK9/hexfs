@@ -16,6 +16,17 @@ const (
 
 var SizeOfUploadDir int64
 
+func NotFoundHandler(w http.ResponseWriter, r *http.Request) {
+	if os.Getenv(Frontend) != "" {
+		http.Redirect(w, r, os.Getenv(Frontend), 301)
+	} else {
+		SendJSONResponse(&w, ResponseError{
+			Status:  1,
+			Message: "Page not found.",
+		})
+	}
+}
+
 func main() {
 	envErr := godotenv.Load()
 	if envErr != nil {
@@ -41,10 +52,7 @@ func main() {
 		})
 	})
 	router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		SendJSONResponse(&w, ResponseError{
-			Status:  1,
-			Message: "Page not found.",
-		})
+		NotFoundHandler(w, r)
 	})
 
 	router.GET("/:id", ServeIndex)

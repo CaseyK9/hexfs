@@ -16,6 +16,7 @@ const (
 	UploadDirMaxSize = "PSE_UPLOAD_DIR_MAX_SIZE"
 	UploadDirPath = "PSE_UPLOAD_DIR_PATH"
 	Endpoint = "PSE_ENDPOINT"
+	Frontend = "PSE_FRONTEND"
 )
 
 func ValidateEnv() {
