@@ -33,10 +33,9 @@ func main() {
 		panic("Cannot find a .env file in the project root.")
 	}
 	ValidateEnv()
-	if _, err := os.Stat(os.Getenv(UploadDirPath)); err != nil {
-		if os.IsNotExist(err) {
-			panic("Directory " + os.Getenv(UploadDirPath) + " does not exist. Create it and try again.")
-		}
+	err := os.Mkdir(os.Getenv(UploadDirPath), 0755)
+	if err != nil {
+		panic("Directory " + os.Getenv(UploadDirPath) + " was attempted to be created by PSE, but failed. " + err.Error())
 	}
 	s, e := DirSize(os.Getenv(UploadDirPath))
 	if e != nil {
@@ -55,6 +54,7 @@ func main() {
 		NotFoundHandler(w, r)
 	})
 
+	router.GET("/", ServeIndex)
 	router.GET("/:id", ServeIndex)
 	router.GET("/:id/:name", ServeFile)
 	router.POST("/", ServeUpload)
