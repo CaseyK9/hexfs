@@ -8,15 +8,15 @@ import (
 )
 
 const (
-	Port = "PSE_PORT"
-	UploadKey = "PSE_UPLOAD_KEY"
-	MinSizeBytes = "PSE_MIN_SIZE_BYTES"
-	MaxSizeBytes = "PSE_MAX_SIZE_BYTES"
-	DiscordWebhookURL = "PSE_DISCORD_WEBHOOK"
-	UploadDirMaxSize = "PSE_UPLOAD_DIR_MAX_SIZE"
-	UploadDirPath = "PSE_UPLOAD_DIR_PATH"
-	Endpoint = "PSE_ENDPOINT"
-	Frontend = "PSE_FRONTEND"
+	Port = "HFS_PORT"
+	UploadKey = "HFS_UPLOAD_KEY"
+	MinSizeBytes = "HFS_MIN_SIZE_BYTES"
+	MaxSizeBytes = "HFS_MAX_SIZE_BYTES"
+	DiscordWebhookURL = "HFS_DISCORD_WEBHOOK"
+	UploadDirMaxSize = "HFS_UPLOAD_DIR_MAX_SIZE"
+	UploadDirPath = "HFS_UPLOAD_DIR_PATH"
+	Endpoint = "HFS_ENDPOINT"
+	Frontend = "HFS_FRONTEND"
 )
 
 func ValidateEnv() {

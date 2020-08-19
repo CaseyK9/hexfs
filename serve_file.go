@@ -28,7 +28,7 @@ func ServeFile(w http.ResponseWriter, _ *http.Request, ps httprouter.Params) {
 		SendJSONResponse(&w, ResponseError{
 			Status:  1,
 			Message: "Could not read file headers.",
-		})
+		}, http.StatusBadRequest)
 		return
 	}
 	contentType := http.DetectContentType(header)
@@ -44,7 +44,7 @@ func ServeFile(w http.ResponseWriter, _ *http.Request, ps httprouter.Params) {
 		SendJSONResponse(&w, ResponseError{
 			Status:  1,
 			Message: "Could not write file to client.",
-		})
+		}, http.StatusInternalServerError)
 		return
 	}
 	return
@@ -56,7 +56,7 @@ func Write404ToResponse(filePath string, w http.ResponseWriter) {
 		SendJSONResponse(&w, ResponseError{
 			Status:  1,
 			Message: "File not found.",
-		})
+		}, http.StatusNotFound)
 		return
 	}
 	defer func() {
@@ -67,6 +67,6 @@ func Write404ToResponse(filePath string, w http.ResponseWriter) {
 		SendJSONResponse(&w, ResponseError{
 			Status:  1,
 			Message: "Could not write 404 image to client.",
-		})
+		}, http.StatusInternalServerError)
 	}
 }

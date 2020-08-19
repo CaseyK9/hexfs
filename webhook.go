@@ -16,8 +16,8 @@ type WebhookMessage struct {
 func SendToWebhook(str string) error {
 	m, _ := json.Marshal(WebhookMessage{
 		Content: str,
-		Username: "Pixels Storage Engine",
-		AvatarUrl: "https://i.imgur.com/3jyIODH.png",
+		Username: "hexFS",
+		AvatarUrl: "https://i.imgur.com/JDqEwet.png",
 	})
 	res, err := http.Post(os.Getenv(DiscordWebhookURL), "application/json", bytes.NewBuffer(m))
 	if err != nil {

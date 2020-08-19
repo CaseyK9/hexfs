@@ -9,9 +9,8 @@ import (
 )
 
 func ServeDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	authErr := IsAuthorized(r)
-	if authErr != nil {
-		SendJSONResponse(&w, authErr)
+	authSuccess := IsAuthorized(w, r)
+	if !authSuccess {
 		return
 	}
 
@@ -21,7 +20,7 @@ func ServeDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		SendJSONResponse(&w, ResponseError{
 			Status:  1,
 			Message: "File ID does not exist.",
-		})
+		}, http.StatusNotFound)
 		return
 	}
 	sizeOfDir, _ := DirSize(fPath)
@@ -30,7 +29,7 @@ func ServeDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		SendJSONResponse(&w, ResponseError{
 			Status:  1,
 			Message: "Failed to delete file. " + err.Error(),
-		})
+		}, http.StatusInternalServerError)
 		return
 	}
 	if os.Getenv(DiscordWebhookURL) != "" {
@@ -39,9 +38,6 @@ func ServeDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			fmt.Println("Webhook failed to send: " + webhookErr.Error())
 		}
 	}
-	SizeOfUploadDir -= sizeOfDir
-	SendJSONResponse(&w, EmptyResponse{
-		Status:  0,
-	})
+	SendNothing(&w)
 	return
 }

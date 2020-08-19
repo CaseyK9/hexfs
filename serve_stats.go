@@ -9,6 +9,14 @@ import (
 )
 
 func ServeStats(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
+	sizeOfUploadDir, err := DirSize(os.Getenv(UploadDirPath))
+	if err != nil {
+		SendJSONResponse(&w, ResponseError{
+			Status:  1,
+			Message: "Could not get upload directory size.",
+		}, http.StatusInternalServerError)
+		return
+	}
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 	n, _ := strconv.ParseInt(os.Getenv(UploadDirMaxSize), 0, 64)
@@ -22,8 +30,8 @@ func ServeStats(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
 		MaxFileSize:    ByteCountSI(uint64(max)),
 		MinFileSize:    ByteCountSI(uint64(min)),
 		SpaceMax:       n,
-		SpaceUsed:      SizeOfUploadDir,
+		SpaceUsed:      sizeOfUploadDir,
 		Version:        VERSION,
-	})
+	}, http.StatusOK)
 	return
 }
