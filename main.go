@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	VERSION = "v1.3.3"
+	VERSION = "v0.3.3"
 )
 
 func NotFoundHandler(w http.ResponseWriter, r *http.Request) {
