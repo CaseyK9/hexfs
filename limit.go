@@ -67,10 +67,7 @@ func limit(next http.Handler) http.Handler {
 		} else {
 			ip2, _, err := net.SplitHostPort(r.RemoteAddr)
 			if err != nil {
-				SendJSONResponse(&w, ResponseError{
-					Status:  1,
-					Message: "Could not fetch IP address.",
-				}, http.StatusInternalServerError)
+				SendTextResponse(&w, "Could not fetch IP address.", http.StatusInternalServerError)
 				return
 			}
 			ip = ip2
@@ -78,10 +75,7 @@ func limit(next http.Handler) http.Handler {
 
 		limiter := getVisitor(ip)
 		if limiter.Allow() == false {
-			SendJSONResponse(&w, ResponseError{
-				Status:  1,
-				Message: "You are being rate limited.",
-			}, http.StatusTooManyRequests)
+			SendTextResponse(&w, "You are being rate limited.", http.StatusTooManyRequests)
 			return
 		}
 

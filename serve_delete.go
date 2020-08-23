@@ -17,19 +17,13 @@ func ServeDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	fPath := path.Join(os.Getenv(UploadDirPath), ps.ByName("name"))
 	_, statErr := os.Stat(fPath)
 	if statErr != nil {
-		SendJSONResponse(&w, ResponseError{
-			Status:  1,
-			Message: "File ID does not exist.",
-		}, http.StatusNotFound)
+		SendTextResponse(&w, "File ID does not exist.", http.StatusNotFound)
 		return
 	}
 	sizeOfDir, _ := DirSize(fPath)
 	err := os.RemoveAll(fPath)
 	if err != nil {
-		SendJSONResponse(&w, ResponseError{
-			Status:  1,
-			Message: "Failed to delete file. " + err.Error(),
-		}, http.StatusInternalServerError)
+		SendTextResponse(&w, "Failed to delete file. " + err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if os.Getenv(DiscordWebhookURL) != "" {

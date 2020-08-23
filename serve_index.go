@@ -11,9 +11,6 @@ func ServeIndex(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 	switch strings.ToLower(ps.ByName("id")) {
-	case "stats":
-		ServeStats(w, r, ps)
-		break
 	case "ping":
 		ServePing(w, r, ps)
 		break

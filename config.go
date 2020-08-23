@@ -27,6 +27,7 @@ func ValidateEnv() {
 		MaxSizeBytes,
 		UploadDirMaxSize,
 		UploadDirPath,
+		Endpoint,
 	} {
 		switch v {
 		case UploadDirPath:
@@ -54,7 +55,7 @@ func ValidateEnv() {
 				}
 			}
 			break
-		case UploadKey:
+		case UploadKey, Endpoint:
 			if os.Getenv(v) == "" {
 				panic(fmt.Sprintf("%s must be set.", v))
 			}

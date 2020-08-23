@@ -27,23 +27,14 @@ func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	parseErr := (*r).ParseMultipartForm(32<<20)
 	if parseErr != nil {
 		if !authorized {
-			SendJSONResponse(&w, ResponseError{
-				Status:  1,
-				Message: "Not authorized to upload.",
-			}, http.StatusUnauthorized)
+			SendTextResponse(&w, "Not authorized to upload.", http.StatusUnauthorized)
 		} else {
-			SendJSONResponse(&w, ResponseError{
-				Status:  1,
-				Message: "File exceeds maximum size allowed/malformed body.",
-			}, http.StatusBadRequest)
+			SendTextResponse(&w, "File exceeds maximum size allowed/malformed body.", http.StatusBadRequest)
 		}
 		return
 	}
 	if !HasContentType(r, "multipart/form-data") {
-		SendJSONResponse(&w, ResponseError{
-			Status:  1,
-			Message: "Content-Type must equal multipart/form-data.",
-		}, http.StatusBadRequest)
+		SendTextResponse(&w, "Content-Type must equal multipart/form-data.", http.StatusBadRequest)
 		return
 	}
 
@@ -54,10 +45,7 @@ func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	file, handler, err := (*r).FormFile("file") // Retrieve the file from form data
 	if err != nil {
-		SendJSONResponse(&w, ResponseError{
-			Status:  1,
-			Message: "No files were uploaded.",
-		}, http.StatusBadRequest)
+		SendTextResponse(&w, "No files were uploaded.", http.StatusBadRequest)
 		return
 	}
 
@@ -79,27 +67,18 @@ func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 	minSize, _ := strconv.ParseInt(os.Getenv(MinSizeBytes), 0, 64)
 	if handler.Size < minSize {
-		SendJSONResponse(&w, ResponseError{
-			Status:  1,
-			Message: "File is smaller than minimum size allowed.",
-		}, http.StatusBadRequest)
+		SendTextResponse(&w, "File is smaller than minimum size allowed.", http.StatusBadRequest)
 		return
 	}
 
 	n, _ := strconv.ParseInt(os.Getenv(UploadDirMaxSize), 0, 64)
 	sizeOfUploadDir, err := DirSize(os.Getenv(UploadDirPath))
 	if err != nil {
-		SendJSONResponse(&w, ResponseError{
-			Status:  1,
-			Message: "Could not get upload directory size.",
-		}, http.StatusInternalServerError)
+		SendTextResponse(&w, "Could not get upload directory size.", http.StatusInternalServerError)
 		return
 	}
 	if sizeOfUploadDir + handler.Size > n {
-		SendJSONResponse(&w, ResponseError{
-			Status:  1,
-			Message: "Upload directory would exceed max size with this upload.",
-		}, http.StatusInsufficientStorage)
+		SendTextResponse(&w, "Upload directory would exceed max set size with this upload.", http.StatusInsufficientStorage)
 		return
 	}
 	var wg sync.WaitGroup
@@ -114,10 +93,7 @@ func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	filePath := path.Join(os.Getenv(UploadDirPath), fileId)
 	mkdirErr := os.Mkdir(filePath, 0755)
 	if mkdirErr != nil {
-		SendJSONResponse(&w, ResponseError{
-			Status:  1,
-			Message: "Could not create directory for the file. " + mkdirErr.Error(),
-		}, http.StatusInternalServerError)
+		SendTextResponse(&w, "Could not create directory for the file. ", http.StatusInternalServerError)
 		return
 	}
 
@@ -125,16 +101,10 @@ func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	if openErr != nil {
 		rmErr := os.RemoveAll(filePath)
 		if rmErr != nil {
-			SendJSONResponse(&w, ResponseError{
-				Status:  1,
-				Message: "Failed to remove directory after failing to open file. RemoveAll err: " + rmErr.Error() + " OpenFile err: " + openErr.Error(),
-			}, http.StatusInternalServerError)
+			SendTextResponse(&w, "Failed to remove directory after failing to open file. RemoveAll err: " + rmErr.Error() + " OpenFile err: " + openErr.Error(), http.StatusInternalServerError)
 			return
 		}
-		SendJSONResponse(&w, ResponseError{
-			Status:  1,
-			Message: "There was a problem trying to open the file. " + openErr.Error(),
-		}, http.StatusInternalServerError)
+		SendTextResponse(&w, "There was a problem trying to open the file. " + openErr.Error(), http.StatusInternalServerError)
 		return
 	}
 	// Close opened file on disk. Never evaluates an error.
@@ -146,48 +116,26 @@ func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	if writeErr != nil {
 		rmErr := os.RemoveAll(filePath)
 		if rmErr != nil {
-			SendJSONResponse(&w, ResponseError{
-				Status:  1,
-				Message: "Failed to remove directory after failing writing file to disk. RemoveAll err: " + rmErr.Error() + " Copy err: " + writeErr.Error(),
-			}, http.StatusInternalServerError)
+			SendTextResponse(&w, "Failed to remove directory after failing writing file to disk. RemoveAll err: " + rmErr.Error() + " Copy err: " + writeErr.Error(), http.StatusInternalServerError)
 			return
 		}
-		SendJSONResponse(&w, ResponseError{
-			Status:  1,
-			Message: "There was a problem writing the file to disk. " + writeErr.Error(),
-		}, http.StatusInternalServerError)
+		SendTextResponse(&w, "There was a problem writing the file to disk. " + writeErr.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	fullFileUrl := ""
-	if os.Getenv(Endpoint) != "" {
-		baseUrl, urlErr := url.Parse(os.Getenv(Endpoint))
-		if urlErr != nil {
-			SendJSONResponse(&w, ResponseError{
-				Status:  1,
-				Message: "Malformed endpoint. " + urlErr.Error(),
-			}, http.StatusInternalServerError)
-			return
-		}
-		baseUrl.Path = path.Join(baseUrl.Path, fileId, handler.Filename)
-		fullFileUrl = baseUrl.String()
+	baseUrl, urlErr := url.Parse(os.Getenv(Endpoint))
+	if urlErr != nil {
+		SendTextResponse(&w, "Malformed endpoint. " + urlErr.Error(), http.StatusInternalServerError)
+		return
 	}
+	baseUrl.Path = path.Join(fileId, handler.Filename)
 
 	if os.Getenv(DiscordWebhookURL) != "" {
-		sendStr := path.Join(fileId, handler.Filename)
-		if fullFileUrl != "" {
-			sendStr = fullFileUrl
-		}
-		webhookErr := SendToWebhook(fmt.Sprintf("%s created. Wrote **%s** of data. (Total %% of space used: %.2f%%)", sendStr, ByteCountSI(uint64(written)), float64(sizeOfUploadDir) / float64(n)))
+		webhookErr := SendToWebhook(fmt.Sprintf("%s created. Wrote **%s** of data. (Total %% of space used: %.2f%%)", baseUrl.String(), ByteCountSI(uint64(written)), float64(sizeOfUploadDir) / float64(n)))
 		if webhookErr != nil {
 			fmt.Println("Webhook failed to send: " + webhookErr.Error())
 		}
 	}
 
-	SendJSONResponse(&w, UploadResponseSuccess{
-		Status: 0,
-		FileLocation: path.Join(fileId, handler.Filename),
-		FullFileUrl: fullFileUrl,
-		Size: handler.Size,
-	}, http.StatusOK)
+	SendTextResponse(&w, baseUrl.String(), http.StatusOK)
 }

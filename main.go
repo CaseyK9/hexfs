@@ -13,17 +13,14 @@ import (
 )
 
 const (
-	VERSION = "v1.3.0"
+	VERSION = "v1.4.0"
 )
 
 func NotFoundHandler(w http.ResponseWriter, r *http.Request) {
 	if os.Getenv(Frontend) != "" {
 		http.Redirect(w, r, os.Getenv(Frontend), http.StatusPermanentRedirect)
 	} else {
-		SendJSONResponse(&w, ResponseError{
-			Status:  1,
-			Message: "Page not found.",
-		}, http.StatusNotFound)
+		SendTextResponse(&w, "Page not found.", http.StatusNotFound)
 	}
 }
 
@@ -73,24 +70,10 @@ func main() {
 		// is os.Exist is true then the directory already exists.
 	}
 	fmt.Println("Getting initial size of upload directory path")
-	//lmt := tollbooth.NewLimiter(1, &limiter.ExpirableOptions{DefaultExpirationTTL: time.Minute * 30})
-	//lmt.SetIPLookups([]string{"X-Forwarded-For", "RemoteAddr", "X-Real-IP"})
-	//lmt.SetOnLimitReached(func(w http.ResponseWriter, r *http.Request) {
-	//	_ = json.NewEncoder(w).Encode(ResponseError{
-	//		Status:  1,
-	//		Message: "You are being rate limited.",
-	//	})
-	//})
-	//lmt.SetMessage("")
-	//lmt.SetMessageContentType("application/json")
-
 	router := httprouter.New()
 	router.HandleMethodNotAllowed = true
 	router.MethodNotAllowed = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		SendJSONResponse(&w, ResponseError{
-			Status:  1,
-			Message: "Method not allowed.",
-		}, http.StatusMethodNotAllowed)
+		SendTextResponse(&w, "Method not allowed.", http.StatusMethodNotAllowed)
 	})
 	router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		NotFoundHandler(w, r)
@@ -105,12 +88,6 @@ func main() {
 		Addr: ":" + os.Getenv(Port),
 		ReadHeaderTimeout: time.Second * 5000,
 		WriteTimeout: time.Second * 5000,
-		//Handler: tollbooth.LimitFuncHandler(lmt, func(w http.ResponseWriter, r *http.Request) {
-		//	w.Header().Set("Access-Control-Allow-Origin", "*")
-		//	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		//	w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization")
-		//	router.ServeHTTP(w, r)
-		//}),
 		Handler: limit(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
