@@ -12,7 +12,7 @@ import (
 	"sync"
 )
 
-const IdLen = 12
+const IdLen = 6
 
 func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	maxSize, _ := strconv.ParseInt(os.Getenv(MaxSizeBytes), 0, 64)
@@ -56,6 +56,10 @@ func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 			fmt.Println("Couldn't close form file: " + fileCloseErr.Error())
 		}
 	}()
+	if len(handler.Filename) > 64 {
+		SendTextResponse(&w, "File name should not exceed 64 characters.", http.StatusBadRequest)
+		return
+	}
 	// Not necessary?
 	//if handler.Size > maxSize {
 	//	_ = json.NewEncoder(w).Encode(ResponseError{
