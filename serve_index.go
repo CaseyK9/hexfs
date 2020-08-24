@@ -7,9 +7,6 @@ import (
 )
 
 func ServeIndex(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	if (*r).Method == "OPTIONS" {
-		return
-	}
 	switch strings.ToLower(ps.ByName("id")) {
 	case "ping":
 		ServePing(w, r, ps)
