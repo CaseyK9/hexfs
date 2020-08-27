@@ -4,8 +4,6 @@
 
 Private file host.
 
-Example: https://hexfs.vysion.cc
-
 Set `HFS_ENDPOINT` to your API endpoint and `HFS_UPLOAD_KEY` to the key to use when uploading. these ones are required
 
 Full list of variables to use
