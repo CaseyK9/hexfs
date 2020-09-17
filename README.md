@@ -23,3 +23,5 @@ Full list of variables to use
 ## how to upload something
 
 POST / with your key in the `Authorization` header and the file in the `file` field on a `multipart/form-data` encoded request. you'll get the response as plaintext along with 200 OK
+
+You can also include an additional field, `proxy`, and specify a custom domain to use in place of HFS_ENDPOINT.

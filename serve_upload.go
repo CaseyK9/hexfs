@@ -127,7 +127,12 @@ func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 
-	baseUrl, urlErr := url.Parse(os.Getenv(Endpoint))
+	urlToSend := os.Getenv(Endpoint)
+	if r.FormValue("proxy") != "" {
+		urlToSend = r.FormValue("proxy")
+	}
+
+	baseUrl, urlErr := url.Parse(urlToSend)
 	if urlErr != nil {
 		SendTextResponse(&w, "Malformed endpoint. " + urlErr.Error(), http.StatusInternalServerError)
 		return
