@@ -3,44 +3,35 @@ package main
 import (
 	"fmt"
 	"os"
-	"path"
 	"strconv"
 )
 
 const (
 	Port = "HFS_PORT"
 	UploadKey = "HFS_UPLOAD_KEY"
-	MinSizeBytes = "HFS_MIN_SIZE_BYTES"
 	MaxSizeBytes = "HFS_MAX_SIZE_BYTES"
-	DiscordWebhookURL = "HFS_DISCORD_WEBHOOK"
-	UploadDirMaxSize = "HFS_UPLOAD_DIR_MAX_SIZE"
-	UploadDirPath = "HFS_UPLOAD_DIR_PATH"
 	Endpoint = "HFS_ENDPOINT"
 	Frontend = "HFS_FRONTEND"
+	GCSBucketName = "GCS_BUCKET_NAME"
+	GoogleApplicationCredentials = "GOOGLE_APPLICATION_CREDENTIALS"
+	GCSSecretKey = "GCS_SECRET_KEY"
 )
 
 func ValidateEnv() {
 	for _, v := range []string{
 		Port,
 		UploadKey,
-		MinSizeBytes,
 		MaxSizeBytes,
-		UploadDirMaxSize,
-		UploadDirPath,
 		Endpoint,
+		GCSBucketName,
+		GoogleApplicationCredentials,
 	} {
 		switch v {
-		case UploadDirPath:
+		case GCSBucketName:
+		case GoogleApplicationCredentials:
+		case GCSSecretKey:
 			if os.Getenv(v) == "" {
-				p, pathErr := os.Getwd()
-				if pathErr != nil {
-					panic("Cannot determine current working directory.")
-				}
-				fmt.Println("Setting uploads folder to " + path.Join(p, "uploads"))
-				e := os.Setenv(v, path.Join(p, "uploads"))
-				if e != nil {
-					panic("Could not set default upload directory path.")
-				}
+				panic(fmt.Sprintf("You must set the proper Google Cloud Storage variables."))
 			}
 		case Port:
 			if os.Getenv(v) == "" {
@@ -60,30 +51,12 @@ func ValidateEnv() {
 				panic(fmt.Sprintf("%s must be set.", v))
 			}
 			break
-		case MinSizeBytes, MaxSizeBytes, UploadDirMaxSize:
+		case MaxSizeBytes:
 			if os.Getenv(v) == "" {
-				switch v {
-				case MinSizeBytes:
-					fmt.Println("Setting " + v + " to 512 B")
-					e := os.Setenv(v, "512")
-					if e != nil {
-						panic(fmt.Sprintf("Could not set %s with a default size", e))
-					}
-					break
-				case MaxSizeBytes:
-					fmt.Println("Setting " + v + " to 50 MiB")
-					e := os.Setenv(v, "52428800")
-					if e != nil {
-						panic(fmt.Sprintf("Could not set %s with a default size", e))
-					}
-					break
-				case UploadDirMaxSize:
-					fmt.Println("Setting " + v + " to 10 GiB")
-					e := os.Setenv(UploadDirMaxSize, "10737418240")
-					if e != nil {
-						panic("Could not set " + UploadDirMaxSize)
-					}
-					break
+				fmt.Println("Setting " + v + " to 50 MiB")
+				e := os.Setenv(v, "52428800")
+				if e != nil {
+					panic(fmt.Sprintf("Could not set %s with a default size", e))
 				}
 			} else {
 				n, e := strconv.ParseInt(os.Getenv(v), 0, 64)
@@ -91,7 +64,6 @@ func ValidateEnv() {
 					panic(fmt.Sprintf("%s is not greater than 0 B, or the syntax is invalid.", v))
 				}
 			}
-
 			break
 		}
 	}

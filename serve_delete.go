@@ -1,37 +1,49 @@
 package main
 
 import (
+	"cloud.google.com/go/storage"
+	"context"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"os"
-	"path"
+	"time"
 )
 
 func ServeDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	authSuccess := IsAuthorized(w, r)
-	if !authSuccess {
+	gcsClient, ctx, e := CreateGCSClient()
+	if e != nil {
+		SendTextResponse(&w, "There was a problem creating the GCS Client. " + e.Error(), http.StatusInternalServerError)
+		return
+	}
+	ctx, cancel := context.WithTimeout(ctx, time.Second*60)
+	defer cancel()
+	defer gcsClient.Close()
+
+	key, err := GetKey()
+	if err != nil {
+		SendTextResponse(&w, "AES256 key not properly formatted to Base64.", http.StatusInternalServerError)
 		return
 	}
 
-	fPath := path.Join(os.Getenv(UploadDirPath), ps.ByName("name"))
-	_, statErr := os.Stat(fPath)
-	if statErr != nil {
-		SendTextResponse(&w, "File ID does not exist.", http.StatusNotFound)
-		return
-	}
-	sizeOfDir, _ := DirSize(fPath)
-	err := os.RemoveAll(fPath)
+	f := gcsClient.Bucket(os.Getenv(GCSBucketName)).Object(ps.ByName("name")).Key(key)
+	s, err := f.NewReader(ctx)
 	if err != nil {
-		SendTextResponse(&w, "Failed to delete file. " + err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if os.Getenv(DiscordWebhookURL) != "" {
-		webhookErr := SendToWebhook(fmt.Sprintf("File ID %s deleted. Freed **%s** of space.", ps.ByName("name"), ByteCountSI(uint64(sizeOfDir))))
-		if webhookErr != nil {
-			fmt.Println("Webhook failed to send: " + webhookErr.Error())
+		if err == storage.ErrObjectNotExist {
+			SendTextResponse(&w, "File does not exist.", http.StatusNotFound)
+			return
+		} else {
+			SendTextResponse(&w, "Failed to read file info from GCS. " + err.Error(), http.StatusInternalServerError)
+			return
 		}
 	}
+	defer s.Close()
+	err = f.Delete(ctx)
+	if err != nil {
+		SendTextResponse(&w, "Failed to remove file from GCS. " + err.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Println(fmt.Sprintf("---- `%s` | Size: %s", ps.ByName("name"), ByteCountSI(uint64(s.Attrs.Size))))
 	SendNothing(&w)
 	return
 }

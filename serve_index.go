@@ -11,7 +11,11 @@ func ServeIndex(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	case "ping":
 		ServePing(w, r, ps)
 		break
+	case "favicon.ico":
+		// TODO: Make hexFS favicon
+		SendNothing(&w)
+		return
 	default:
-		NotFoundHandler(w, r)
+		ServeFileOrNotFound(w, r, ps)
 	}
 }
