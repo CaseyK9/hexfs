@@ -17,17 +17,19 @@ import (
 const IdLen = 8
 
 func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	if os.Getenv(PublicMode) != "1" {
-		if !IsAuthorized(w, r, os.Getenv(UploadKey)) {
-			return
-		}
-	}
+	defer r.Body.Close()
 	maxSize, _ := strconv.ParseInt(os.Getenv(MaxSizeBytes), 0, 64)
 	r.Body = http.MaxBytesReader(w, r.Body, maxSize+1024)
 	parseErr := (*r).ParseMultipartForm(32<<20)
 	if parseErr != nil {
 		SendTextResponse(&w, "File exceeds maximum size allowed/malformed body.", http.StatusBadRequest)
 		return
+	}
+
+	if os.Getenv(PublicMode) != "1" {
+		if !IsAuthorized(w, r, os.Getenv(UploadKey)) {
+			return
+		}
 	}
 
 	file, handler, err := (*r).FormFile("file") // Retrieve the file from form data

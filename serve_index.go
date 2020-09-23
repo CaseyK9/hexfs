@@ -13,6 +13,7 @@ func ServeIndex(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		break
 	case "favicon.ico":
 		// TODO: Make hexFS favicon
+		defer r.Body.Close()
 		SendNothing(&w)
 		return
 	default:

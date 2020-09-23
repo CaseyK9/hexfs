@@ -11,6 +11,7 @@ import (
 )
 
 func ServeDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	defer r.Body.Close()
 	if !IsAuthorized(w, r, os.Getenv(DeletionKey)) {
 		return
 	}

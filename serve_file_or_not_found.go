@@ -12,6 +12,7 @@ import (
 )
 
 func ServeNotFound(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
 	if os.Getenv(Frontend) != "" {
 		http.Redirect(w, r, os.Getenv(Frontend), http.StatusPermanentRedirect)
 	} else {
@@ -23,6 +24,7 @@ func ServeFileOrNotFound(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		ServeNotFound(w, r)
 		return
 	}
+	defer r.Body.Close()
 	gcsClient, e := CreateGCSClient()
 	if e != nil {
 		SendTextResponse(&w, "There was a problem creating the GCS Client. " + e.Error(), http.StatusInternalServerError)
