@@ -23,12 +23,12 @@ func ServeFileOrNotFound(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		ServeNotFound(w, r)
 		return
 	}
-	gcsClient, ctx, e := CreateGCSClient()
+	gcsClient, e := CreateGCSClient()
 	if e != nil {
 		SendTextResponse(&w, "There was a problem creating the GCS Client. " + e.Error(), http.StatusInternalServerError)
 		return
 	}
-	ctx, cancel := context.WithTimeout(ctx, time.Second*60)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
 	defer gcsClient.Close()
 	key, err := GetKey()

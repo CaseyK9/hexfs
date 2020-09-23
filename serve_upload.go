@@ -14,9 +14,14 @@ import (
 	"time"
 )
 
-const IdLen = 7
+const IdLen = 8
 
 func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	if os.Getenv(PublicMode) != "1" {
+		if !IsAuthorized(w, r, os.Getenv(UploadKey)) {
+			return
+		}
+	}
 	maxSize, _ := strconv.ParseInt(os.Getenv(MaxSizeBytes), 0, 64)
 	r.Body = http.MaxBytesReader(w, r.Body, maxSize+1024)
 	parseErr := (*r).ParseMultipartForm(32<<20)
@@ -38,17 +43,28 @@ func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 			fmt.Println("Couldn't close form file: " + fileCloseErr.Error())
 		}
 	}()
+
+	if os.Getenv(DisableFileBlacklist) == "0" {
+		fileBlacklist := []string{".exe", ".com", ".dll", ".vbs", ".html", ".mhtml", ".xls", ".doc", ".xlsx", ".sh", ".bat", ".zsh", ""}
+		for _, f := range fileBlacklist {
+			if path.Ext(handler.Filename) == f {
+				SendTextResponse(&w, "File extension prohibited.", http.StatusForbidden)
+				return
+			}
+		}
+	}
+
 	if len(handler.Filename) > 128 {
 		SendTextResponse(&w, "File name should not exceed 128 characters.", http.StatusBadRequest)
 		return
 	}
 
-	gcsClient, ctx, e := CreateGCSClient()
+	gcsClient, e := CreateGCSClient()
 	if e != nil {
 		SendTextResponse(&w, "There was a problem creating the GCS Client. " + e.Error(), http.StatusInternalServerError)
 		return
 	}
-	ctx, cancel := context.WithTimeout(ctx, time.Second*60)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
 	defer gcsClient.Close()
 
@@ -84,6 +100,6 @@ func ServeUpload(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 	baseUrl.Path = fileName
-	fmt.Println(fmt.Sprintf("++++ `%s` | Size: %s | Original: `%s`", fileName, ByteCountSI(uint64(written)), handler.Filename))
+	fmt.Println(fmt.Sprintf("++++ %s | Size: %s | Original: `%s` | From IP: %s", fileName, ByteCountSI(uint64(written)), handler.Filename, GetIP(r)))
 	SendTextResponse(&w, baseUrl.String(), http.StatusOK)
 }

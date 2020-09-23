@@ -11,12 +11,15 @@ import (
 )
 
 func ServeDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	gcsClient, ctx, e := CreateGCSClient()
+	if !IsAuthorized(w, r, os.Getenv(DeletionKey)) {
+		return
+	}
+	gcsClient, e := CreateGCSClient()
 	if e != nil {
 		SendTextResponse(&w, "There was a problem creating the GCS Client. " + e.Error(), http.StatusInternalServerError)
 		return
 	}
-	ctx, cancel := context.WithTimeout(ctx, time.Second*60)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
 	defer cancel()
 	defer gcsClient.Close()
 

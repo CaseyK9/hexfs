@@ -9,30 +9,49 @@ import (
 const (
 	Port = "HFS_PORT"
 	UploadKey = "HFS_UPLOAD_KEY"
+	DeletionKey = "HFS_DELETION_KEY"
 	MaxSizeBytes = "HFS_MAX_SIZE_BYTES"
 	Endpoint = "HFS_ENDPOINT"
 	Frontend = "HFS_FRONTEND"
 	GCSBucketName = "GCS_BUCKET_NAME"
 	GoogleApplicationCredentials = "GOOGLE_APPLICATION_CREDENTIALS"
 	GCSSecretKey = "GCS_SECRET_KEY"
+	PublicMode = "HFS_PUBLIC_MODE"
+	DisableFileBlacklist = "HFS_DISABLE_FILE_BLACKLIST"
 )
 
 func ValidateEnv() {
 	for _, v := range []string{
 		Port,
 		UploadKey,
+		DeletionKey,
+		PublicMode,
 		MaxSizeBytes,
 		Endpoint,
 		GCSBucketName,
 		GoogleApplicationCredentials,
+		DisableFileBlacklist,
 	} {
 		switch v {
-		case GCSBucketName:
-		case GoogleApplicationCredentials:
-		case GCSSecretKey:
+		case PublicMode, DisableFileBlacklist:
+			if os.Getenv(v) == "" || os.Getenv(v) != "1" {
+				e := os.Setenv(v, "0")
+				if e != nil {
+					panic("Default value of " + v + " could not be set to 0.")
+				}
+			} else if os.Getenv(v) == "1" {
+				if v == PublicMode {
+					fmt.Println("!!!! WARNING! Public mode ENABLED. Anonymous uploading is allowed! !!!!")
+				} else {
+					fmt.Println("!!!! WARNING! File blacklist is DISABLED. Malicious files can be uploaded! !!!!")
+				}
+			}
+			break
+		case GCSBucketName, GoogleApplicationCredentials, GCSSecretKey:
 			if os.Getenv(v) == "" {
 				panic(fmt.Sprintf("You must set the proper Google Cloud Storage variables."))
 			}
+			break
 		case Port:
 			if os.Getenv(v) == "" {
 				e := os.Setenv(v, "7250")

@@ -2,12 +2,11 @@ package main
 
 import (
 	"net/http"
-	"os"
 )
 
-func IsAuthorized(w http.ResponseWriter, r *http.Request) bool {
+func IsAuthorized(w http.ResponseWriter, r *http.Request, keyToCompare string) bool {
 	auth := (*r).Header.Get("Authorization")
-	if auth != os.Getenv(UploadKey) {
+	if auth != keyToCompare {
 		SendTextResponse(&w, "Not authorized.", http.StatusUnauthorized)
 		return false
 	} else {

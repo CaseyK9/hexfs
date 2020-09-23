@@ -8,13 +8,12 @@ import (
 	"os"
 )
 
-func CreateGCSClient() (*storage.Client, context.Context, error) {
-	ctx := context.Background()
-	c, err := storage.NewClient(ctx, option.WithCredentialsFile(os.Getenv(GoogleApplicationCredentials)))
+func CreateGCSClient() (*storage.Client, error) {
+	c, err := storage.NewClient(context.Background(), option.WithCredentialsFile(os.Getenv(GoogleApplicationCredentials)))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return c, ctx, nil
+	return c, nil
 }
 
 
