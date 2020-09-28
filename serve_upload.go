@@ -31,6 +31,12 @@ func (b *BaseHandler) ServeUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	auth := GetAuthorizationLevel(r.Header.Get("authorization"))
+	if auth == NotAuthorized && os.Getenv(PublicMode) != "1" {
+		SendTextResponse(&w, "Not authorized to upload.", http.StatusUnauthorized)
+		return
+	}
+
 	urlToSend := os.Getenv(Endpoint)
 	if r.FormValue("proxy") != "" {
 		urlToSend = r.FormValue("proxy")

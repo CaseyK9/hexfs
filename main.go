@@ -78,7 +78,7 @@ func main() {
 	r.HandleFunc("/file/delete/id/{id}", b.ProtectedRoute(b.ServeDelete)).Methods(http.MethodPost)
 	r.HandleFunc("/file/delete/ip/{ip}", b.ProtectedRoute(b.ServeDelete)).Methods(http.MethodPost)
 	r.HandleFunc("/file/delete/sha256/{sha256}", b.ProtectedRoute(b.ServeDelete)).Methods(http.MethodPost)
-	r.HandleFunc("/", b.ProtectedRoute(b.ServeUpload)).Methods(http.MethodPost, http.MethodOptions)
+	r.HandleFunc("/", b.ServeUpload).Methods(http.MethodPost, http.MethodOptions)
 
 	// Conditional Routes (can be accessed without the key, but limited information is returned)
 	r.HandleFunc("/file/info/{id}", b.ServeInformation).Methods(http.MethodGet)

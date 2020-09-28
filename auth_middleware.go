@@ -13,15 +13,6 @@ const (
 
 func (b *BaseHandler) ProtectedRoute(next http.HandlerFunc) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		if request.URL.Path == "/" && request.Method == http.MethodPost {
-			auth := GetAuthorizationLevel(request.Header.Get("authorization"))
-			if auth == NotAuthorized && os.Getenv(PublicMode) != "1" {
-				SendTextResponse(&writer, "Not authorized to upload.", http.StatusUnauthorized)
-				return
-			}
-			next.ServeHTTP(writer, request)
-			return
-		}
 		if GetAuthorizationLevel(request.Header.Get("authorization")) != IsMasterKey {
 			SendTextResponse(&writer, "Not authorized.", http.StatusUnauthorized)
 			return
