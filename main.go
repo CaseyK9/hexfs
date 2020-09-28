@@ -88,9 +88,9 @@ func main() {
 	r.HandleFunc("/server/ping", ServePing).Methods(http.MethodGet)
 	r.HandleFunc("/favicon.ico", ServeFavicon).Methods(http.MethodGet)
 	r.HandleFunc("/{id}", b.ServeFile).Methods(http.MethodGet)
-
-	r.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { ServeNotFound(w, r) })
+	r.HandleFunc("/", ServeNotFound).Methods(http.MethodGet)
 	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { SendTextResponse(&w, "Method not allowed.", http.StatusMethodNotAllowed) })
+
 	srv := &http.Server{
 		Addr:         ":" + os.Getenv(Port),
 		WriteTimeout: time.Second * 15,
