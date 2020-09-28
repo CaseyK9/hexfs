@@ -84,7 +84,7 @@ func main() {
 	r.HandleFunc("/file/info/{id}", b.ServeInformation).Methods(http.MethodGet)
 
 	// Public Routes (accessible without the key)
-	r.HandleFunc("/auth/check/{key}", ServeCheckAuth).Methods(http.MethodGet)
+	r.HandleFunc("/auth/check", ServeCheckAuth).Methods(http.MethodGet)
 	r.HandleFunc("/server/ping", ServePing).Methods(http.MethodGet)
 	r.HandleFunc("/favicon.ico", ServeFavicon).Methods(http.MethodGet)
 	r.HandleFunc("/{id}", b.ServeFile).Methods(http.MethodGet)
