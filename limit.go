@@ -30,8 +30,8 @@ func getVisitor(ip string) *rate.Limiter {
 
 	v, exists := visitors[ip]
 	if !exists {
-		// This would in theory allow 5 files/second (OPTIONS & POST requests)
-		limiter := rate.NewLimiter(1, 10)
+		// This would allow 2 files/second (OPTIONS & POST requests)
+		limiter := rate.NewLimiter(1, 4)
 		// Include the current time when creating a new visitor.
 		visitors[ip] = &visitor{limiter, time.Now()}
 		return limiter

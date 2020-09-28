@@ -3,51 +3,64 @@ package main
 import (
 	"cloud.google.com/go/storage"
 	"context"
-	"fmt"
-	"github.com/julienschmidt/httprouter"
+	"github.com/gorilla/mux"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
-func ServeDelete(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	defer r.Body.Close()
-	if !IsAuthorized(w, r, os.Getenv(DeletionKey)) {
-		return
-	}
-	gcsClient, e := CreateGCSClient()
-	if e != nil {
-		SendTextResponse(&w, "There was a problem creating the GCS Client. " + e.Error(), http.StatusInternalServerError)
-		return
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
+// DeleteFiles will delete files from both GCS and the database based on a filter of FileData.
+func (b *BaseHandler) DeleteFiles(filter FileData) (int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	defer gcsClient.Close()
-
-	key, err := GetKey()
+	cur, err := b.Database.Collection(MongoCollectionFiles).Find(ctx, filter)
 	if err != nil {
-		SendTextResponse(&w, "AES256 key not properly formatted to Base64.", http.StatusInternalServerError)
-		return
+		return 0, err
 	}
+	defer cur.Close(ctx)
 
-	f := gcsClient.Bucket(os.Getenv(GCSBucketName)).Object(ps.ByName("name")).Key(key)
-	s, err := f.NewReader(ctx)
-	if err != nil {
-		if err == storage.ErrObjectNotExist {
-			SendTextResponse(&w, "File does not exist.", http.StatusNotFound)
-			return
-		} else {
-			SendTextResponse(&w, "Failed to read file info from GCS. " + err.Error(), http.StatusInternalServerError)
-			return
+	for cur.Next(ctx) {
+		var result FileData
+		err := cur.Decode(&result)
+		if err != nil {
+			return 0, err
+
+		}
+		e := b.GCSClient.Bucket(os.Getenv(GCSBucketName)).Object(result.ID + result.Ext).Delete(ctx)
+		if e != nil {
+			// If object is not found, who cares, move on
+			if e != storage.ErrObjectNotExist {
+				return 0, err
+			}
 		}
 	}
-	defer s.Close()
-	err = f.Delete(ctx)
+	if err := cur.Err(); err != nil {
+		return 0, err
+	}
+
+	rs, e := b.Database.Collection(MongoCollectionFiles).DeleteMany(ctx, filter)
+	if e != nil {
+		return 0, err
+	}
+	return rs.DeletedCount, nil
+}
+
+func (b *BaseHandler) ServeDelete(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	vars := mux.Vars(r)
+
+	deleted, err := b.DeleteFiles(FileData{
+		ID:                vars["id"],
+		SHA256:            vars["sha256"],
+		IP:                vars["ip"],
+	})
 	if err != nil {
-		SendTextResponse(&w, "Failed to remove file from GCS. " + err.Error(), http.StatusInternalServerError)
+		SendTextResponse(&w, "Error in deleting files: " + err.Error(), http.StatusInternalServerError)
 		return
 	}
-	fmt.Println(fmt.Sprintf("---- `%s` | Size: %s", ps.ByName("name"), ByteCountSI(uint64(s.Attrs.Size))))
-	SendNothing(&w)
+
+	SendTextResponse(&w, strconv.FormatInt(deleted, 10), http.StatusOK)
 	return
 }
