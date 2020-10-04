@@ -22,6 +22,7 @@ import (
 const (
 	VERSION = "1.6.0"
 	MongoCollectionFiles = "files"
+	FixedPort = "3030"
 )
 
 func applyCORS(next http.Handler) http.Handler {
@@ -78,10 +79,10 @@ func main() {
 	r.HandleFunc("/file/delete/id/{id}", b.ProtectedRoute(b.ServeDelete)).Methods(http.MethodPost)
 	r.HandleFunc("/file/delete/ip/{ip}", b.ProtectedRoute(b.ServeDelete)).Methods(http.MethodPost)
 	r.HandleFunc("/file/delete/sha256/{sha256}", b.ProtectedRoute(b.ServeDelete)).Methods(http.MethodPost)
-	r.HandleFunc("/", b.ServeUpload).Methods(http.MethodPost, http.MethodOptions)
 
-	// Conditional Routes (can be accessed without the key, but limited information is returned)
+	// Conditional Routes (can be accessed without the key, but behavior is dynamic)
 	r.HandleFunc("/file/info/{id}", b.ServeInformation).Methods(http.MethodGet)
+	r.HandleFunc("/", b.ServeUpload).Methods(http.MethodPost, http.MethodOptions)
 
 	// Public Routes (accessible without the key)
 	r.HandleFunc("/auth/check", ServeCheckAuth).Methods(http.MethodGet)
@@ -92,14 +93,14 @@ func main() {
 	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { SendTextResponse(&w, "Method not allowed.", http.StatusMethodNotAllowed) })
 
 	srv := &http.Server{
-		Addr:         ":" + os.Getenv(Port),
+		Addr:         ":" + FixedPort,
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
 		Handler: limit(applyCORS(r)),
 	}
 	InitRatelimiter()
-	fmt.Println("⬡ Done! Bound to port " + os.Getenv(Port))
+	fmt.Println("⬡ Done! Bound to port " + FixedPort)
 
 	var wait time.Duration
 	flag.DurationVar(&wait, "graceful-timeout", time.Second * 15, "Wait for all requests to finish")
@@ -118,6 +119,6 @@ func main() {
 	ctx, cancel = context.WithTimeout(context.Background(), wait)
 	defer cancel()
 	_ = srv.Shutdown(ctx)
-	fmt.Println(" ▶ Shutting down.")
+	fmt.Println("▶ Shutting down.")
 	os.Exit(0)
 }

@@ -49,7 +49,7 @@ func ValidateEnv() {
 			break
 		case GCSBucketName, GoogleApplicationCredentials, GCSSecretKey:
 			if os.Getenv(v) == "" {
-				log.Fatal(fmt.Sprintf("You must set the proper Google Cloud Storage variables."))
+				log.Fatal("You must set the proper Google Cloud Storage variables.")
 			}
 			break
 		case Port:
