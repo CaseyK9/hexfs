@@ -4,7 +4,7 @@ RUN apk --no-cache add ca-certificates
 
 COPY . $GOPATH/src/hexfs
 WORKDIR $GOPATH/src/hexfs
-RUN go get -t -v
+RUN go get -d ./...
 RUN CGO_ENABLED=0 go build -o /bin/hexfs
 
 FROM scratch
