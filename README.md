@@ -39,6 +39,8 @@ This project requires a `.env` to run. Just put it in the project's root and cop
 
 The project *will not read the .env for you*. You must load them manually into the environment.
 
+Also your google credential JSON file should be moved to the project root.
+
 ```
 # ----------------------
 # REQUIRED
@@ -72,8 +74,9 @@ GCS_BUCKET_NAME=
 GCS_SECRET_KEY=
 
 # The JSON format of your service account key file location.
-# This should be an absolute path.
-GOOGLE_APPLICATION_CREDENTIALS=
+# This should be an absolute path. If you run it in docker
+# replace "key.json" with the name of your json key.
+GOOGLE_APPLICATION_CREDENTIALS=/etc/opt/hexfs/key.json
 
 # The default URL to use in the response for a successful upload.
 # For example, if your host domain is https://files.host.com,
