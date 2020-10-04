@@ -4,8 +4,9 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -57,7 +58,7 @@ func (b *BaseHandler) ServeUpload(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		fileCloseErr := file.Close()
 		if fileCloseErr != nil {
-			fmt.Println("Couldn't close form file: " + fileCloseErr.Error())
+			log.Println("Couldn't close form file: " + fileCloseErr.Error())
 		}
 	}()
 
@@ -120,6 +121,7 @@ func (b *BaseHandler) ServeUpload(w http.ResponseWriter, r *http.Request) {
 		SendTextResponse(&w, "Failed to insert new document. " + e.Error(), http.StatusInternalServerError)
 		return
 	}
+	filesUploaded.With(prometheus.Labels{"container": os.Getenv(ContainerNickname)}).Inc()
 
 	baseUrl.Path = fileName
 	SendTextResponse(&w, baseUrl.String(), http.StatusOK)

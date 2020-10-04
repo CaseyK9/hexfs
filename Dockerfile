@@ -10,5 +10,5 @@ RUN CGO_ENABLED=0 go build -o /bin/hexfs
 FROM scratch
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /bin/hexfs /bin/hexfs
-EXPOSE 3030
+EXPOSE 3030 3031
 ENTRYPOINT ["/bin/hexfs"]

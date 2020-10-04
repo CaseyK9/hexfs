@@ -20,6 +20,7 @@ Do-it-yourself modern file host software, written in Golang. An excellent, effic
 - Built-in global ratelimiter for 4 requests/second. Automatically handles forwarded IPs from Cloudflare.
 - Built-in DoS protection by refusing to read files larger than the max file size you provide.
 - Built-in file extension filter--protect your users from malicious extensions.
+- Metrics server integration with Prometheus. 
 - Final executable is small - only about 13 MB in size.
 - It's not written in JavaScript. 
 - The logo is very cool. :^)
@@ -30,13 +31,13 @@ Do-it-yourself modern file host software, written in Golang. An excellent, effic
 - hexFS cannot download files on your behalf from the Internet. This is deliberately a security decision.
 - hexFS will run completely fine if not containerized, but it's still *recommended*! You could use tmux or systemd to run it. Just throwing out ideas.
 - There are no fancy plugins or extensions, or frontend template for that matter. Make them yourself.
-- hexFS will always listen on 3030. This should not be a problem if you ran it in a container. ;)
+- hexFS will always listen on 3030 (main server) and 3031 (metrics). This should not be a problem if you ran it in a container. ;)
 
 ### .env template aka the massive fucking configuration
 
 This project requires a `.env` to run. Just put it in the project's root and copy paste this shit in there. You can use the comments to help you figure out what to set. All variables are prefixed with `HFS` so they don't collide with other variables. 
 
-Also, please take the time to read it through. 
+The project *will not read the .env for you*. You must load them manually into the environment.
 
 ```
 # ----------------------
@@ -100,10 +101,10 @@ HFS_ENDPOINT=
 # The max size, in bytes, any file can be. Default: 50 MiB.
 # HFS_MAX_SIZE_BYTES=
 
-# The URL to redirect to if the file/page is not found. 
-# If you have a web panel or website, you put it here. 
-# If not set, it will just respond with 404 Not Found.
-# HFS_FRONTEND=
+# The container's human-readable nickname. If you use Docker this can
+# be used to identify the container in Prometheus.
+# If none is given hexFS will generate one for you.
+# HFS_CONTAINER_NICKNAME=
 
 ```
 

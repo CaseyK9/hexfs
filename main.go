@@ -3,11 +3,10 @@ package main
 import (
 	"cloud.google.com/go/storage"
 	"context"
-	"flag"
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -25,6 +24,17 @@ const (
 	FixedPort = "3030"
 )
 
+var (
+	filesUploaded = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "hexfs_uploaded",
+		Help: "Files uploaded since the process started.",
+	}, []string{"container"})
+	heapUsage = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "hexfs_heap_usage",
+		Help: "Memory in use by this process in bytes",
+	}, []string{"container"})
+)
+
 func applyCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -38,33 +48,66 @@ func applyCORS(next http.Handler) http.Handler {
 	})
 }
 
-func main() {
-	fmt.Println("                     #######  #####  \n#    # ###### #    # #       #     # \n#    # #       #  #  #       #       \n###### #####    ##   #####    #####  \n#    # #        ##   #             # \n#    # #       #  #  #       #     # \n#    # ###### #    # #        #####  ")
-	fmt.Println("\nYou are running version " + VERSION)
-	fmt.Println("\n⬡ Checking for .env file")
-	envErr := godotenv.Load()
-	if envErr != nil {
-		log.Fatal("Cannot find a .env file in the project root. Create one, set the values specified in the README, and retry.")
+func serve(ctx context.Context, r *mux.Router) (err error) {
+	srv := &http.Server{
+		Addr:         ":" + FixedPort,
+		WriteTimeout: time.Second * 15,
+		ReadTimeout:  time.Second * 15,
+		IdleTimeout:  time.Second * 60,
+		Handler: limit(applyCORS(r)),
 	}
-	fmt.Println("⬡ Validating environment variables")
+	go func() {
+		if err = srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Listen error: %s\n", err)
+		}
+	}()
+
+	log.Printf("⬡ Server started and bound to port " + FixedPort)
+
+	<-ctx.Done()
+
+	log.Printf("⬡ Server has received a signal to stop.")
+
+	ctxShutDown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer func() {
+		cancel()
+	}()
+
+	if err = srv.Shutdown(ctxShutDown); err != nil {
+		log.Fatalf("Server shutdown failed: %s", err)
+	}
+
+	log.Printf("⬡ Server shut down gracefully.")
+
+	if err == http.ErrServerClosed {
+		err = nil
+	}
+	return
+}
+
+func main() {
+	fmt.Println("hexFS file host software is now starting.")
+	fmt.Print("You are running version " + VERSION + "\n\n")
+
+	log.Println("⬡ Validating environment variables")
 	ValidateEnv()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	fmt.Println("⬡ Establishing MongoDB connection to database \"" + os.Getenv(MongoDatabase) + "\"")
+	log.Println("⬡ Establishing MongoDB connection to database \"" + os.Getenv(MongoDatabase) + "\"")
 	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv(MongoConnectionURI)))
 	if err != nil {
 		log.Fatal("Could not instantiate MongoDB client: " + err.Error())
 	}
-	fmt.Println("⬡ Connection established. Pinging database \"" + os.Getenv(MongoDatabase) + "\"")
+	log.Println("⬡ Connection established. Pinging database \"" + os.Getenv(MongoDatabase) + "\"")
 	e := mongoClient.Ping(ctx, readpref.Primary())
 	if e != nil {
 		log.Fatal("Could not ping MongoDB database: " + e.Error())
 	}
-	fmt.Println("⬡ Ping successful.")
+	log.Println("⬡ Ping successful.")
 
-	fmt.Println("⬡ Establishing Google Cloud Storage client with key file")
+	log.Println("⬡ Establishing Google Cloud Storage client with key file")
 	c, err := storage.NewClient(context.Background(), option.WithCredentialsFile(os.Getenv(GoogleApplicationCredentials)))
 	if err != nil {
 		log.Fatal("Could not instantiate storage client: " + err.Error())
@@ -73,7 +116,7 @@ func main() {
 	b := NewBaseHandler(mongoClient.Database(os.Getenv(MongoDatabase)), c)
 	r := mux.NewRouter()
 
-	fmt.Println("⬡ Configuring routes.")
+	log.Println("⬡ Configuring routes.")
 
 	// Protected Routes (cannot be accessed without the key)
 	r.HandleFunc("/file/delete/id/{id}", b.ProtectedRoute(b.ServeDelete)).Methods(http.MethodPost)
@@ -92,33 +135,25 @@ func main() {
 	r.HandleFunc("/", ServeNotFound).Methods(http.MethodGet)
 	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { SendTextResponse(&w, "Method not allowed.", http.StatusMethodNotAllowed) })
 
-	srv := &http.Server{
-		Addr:         ":" + FixedPort,
-		WriteTimeout: time.Second * 15,
-		ReadTimeout:  time.Second * 15,
-		IdleTimeout:  time.Second * 60,
-		Handler: limit(applyCORS(r)),
-	}
+	registry := prometheus.NewRegistry()
+	registry.MustRegister(filesUploaded)
+	registry.MustRegister(heapUsage)
+
+	StartMetricsServer(registry)
+	log.Println("⬡ Metrics server started and bound to port 3031.")
+
 	InitRatelimiter()
-	fmt.Println("⬡ Done! Bound to port " + FixedPort)
-
-	var wait time.Duration
-	flag.DurationVar(&wait, "graceful-timeout", time.Second * 15, "Wait for all requests to finish")
-	flag.Parse()
-
-	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			log.Fatal(err)
-		}
-	}()
 
 	channel := make(chan os.Signal, 1)
 	signal.Notify(channel, os.Interrupt)
-	<-channel
 
-	ctx, cancel = context.WithTimeout(context.Background(), wait)
-	defer cancel()
-	_ = srv.Shutdown(ctx)
-	fmt.Println("▶ Shutting down.")
-	os.Exit(0)
+	ctx, cancel = context.WithCancel(context.Background())
+	go func() {
+		oscall := <-channel
+		log.Printf("Received system call: %+v", oscall)
+		cancel()
+	}()
+	if err := serve(ctx, r); err != nil {
+		log.Printf("Failed to serve: +%v\n", err)
+	}
 }
