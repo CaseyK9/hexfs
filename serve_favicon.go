@@ -8,7 +8,11 @@ import (
 
 func ServeFavicon(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	f, e := os.OpenFile("favicon.ico", os.O_RDONLY, 0666)
+	if len(os.Getenv(FaviconLocation)) == 0 {
+		w.WriteHeader(404)
+		return
+	}
+	f, e := os.OpenFile(os.Getenv(FaviconLocation), os.O_RDONLY, 0666)
 	if e != nil {
 		if e == os.ErrNotExist {
 			w.WriteHeader(204)

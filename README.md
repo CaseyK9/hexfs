@@ -113,6 +113,9 @@ HFS_ENDPOINT=
 # routes will still 404 and not redirect anywhere. For example, if you
 # have a web panel, you would set that URL here.
 # HFS_FRONTEND=
+
+# The path to a favicon you provide. If not found or not provided the server returns 404.
+# HFS_FAVICON_LOCATION=
 ```
 
 
@@ -120,7 +123,9 @@ HFS_ENDPOINT=
 
 To get the GCS key in you'll need to use a bind mount. Also make sure to bind hexFS ports (3030 and 3031) to other ports on your system. Here's an example of how you would run it, after building the image.
 
-`sudo docker container run -d -p 127.0.0.1:3030:3030 -p 127.0.0.1:3031:3031 -v /where/you/store/config/locally:/mnt/hexfs --name hexfs --env-file /path/to/.env hexfs`
+`/where/you/store/everything/locally` should contain your key and favicon image if you have one.
+
+`sudo docker container run -d -p 127.0.0.1:3030:3030 -p 127.0.0.1:3031:3031 -v /where/you/store/everything/locally:/mnt/hexfs --name hexfs --env-file /path/to/.env hexfs`
 
 ### Support
 

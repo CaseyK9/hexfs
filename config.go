@@ -21,6 +21,7 @@ const (
 	MongoConnectionURI = "HFS_MONGO_CONNECTION_URI"
 	MongoDatabase = "HFS_MONGO_DATABASE"
 	ContainerNickname = "HFS_CONTAINER_NICKNAME"
+	FaviconLocation = "HFS_FAVICON_LOCATION"
 )
 
 // ValidateEnv validates the environment variables and throws log.Fatal if a variable is not correctly set or not set at all.
