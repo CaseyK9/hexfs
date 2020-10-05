@@ -7,7 +7,11 @@ import (
 
 func ServePing(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
-	SendTextResponse(&w, os.Getenv(PublicMode), http.StatusOK)
+	resText := "public mode disabled"
+	if os.Getenv(PublicMode) == "1" {
+		resText = "public mode enabled"
+	}
+	SendTextResponse(&w, resText, http.StatusOK)
 	return
 }
 
