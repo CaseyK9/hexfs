@@ -13,7 +13,7 @@ func SendTextResponse(w *http.ResponseWriter, msg string, code int) {
 		log.Printf(fmt.Sprintf("Unhandled error!, %s", msg))
 	}
 	(*w).WriteHeader(code)
-	_, _ = fmt.Fprintln(*w, msg)
+	_, _ = fmt.Fprint(*w, msg)
 	return
 }
 
