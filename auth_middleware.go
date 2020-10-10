@@ -1,7 +1,7 @@
 package main
 
 import (
-	"net/http"
+	"github.com/valyala/fasthttp"
 	"os"
 )
 
@@ -11,18 +11,16 @@ const (
 	NotAuthorized = 2
 )
 
-func (b *BaseHandler) ProtectedRoute(next http.HandlerFunc) http.HandlerFunc {
-	return func(writer http.ResponseWriter, request *http.Request) {
-		if GetAuthorizationLevel(request.Header.Get("authorization")) != IsMasterKey {
-			SendTextResponse(&writer, "Not authorized.", http.StatusUnauthorized)
-			return
-		}
-		next.ServeHTTP(writer, request)
+func (b *BaseHandler) IsAuthorized(ctx *fasthttp.RequestCtx) bool {
+	if GetAuthorizationLevel(ctx.Request.Header.Peek("authorization")) != IsMasterKey {
+		SendTextResponse(ctx, "Not authorized.", fasthttp.StatusUnauthorized)
+		return false
 	}
+	return true
 }
 
-func GetAuthorizationLevel(test string) int {
-	switch test {
+func GetAuthorizationLevel(test []byte) int {
+	switch string(test) {
 	case os.Getenv(MasterKey):
 		return IsMasterKey
 	case os.Getenv(StandardKey):

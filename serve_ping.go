@@ -1,17 +1,15 @@
 package main
 
 import (
-	"net/http"
+	"github.com/valyala/fasthttp"
 	"os"
 )
 
-func ServePing(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
+func ServePing(ctx *fasthttp.RequestCtx) {
 	resText := "public mode disabled"
 	if os.Getenv(PublicMode) == "1" {
 		resText = "public mode enabled"
 	}
-	SendTextResponse(&w, resText, http.StatusOK)
-	return
+	SendTextResponse(ctx, resText, fasthttp.StatusOK)
 }
 

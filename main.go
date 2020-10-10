@@ -4,95 +4,77 @@ import (
 	"cloud.google.com/go/storage"
 	"context"
 	"fmt"
-	"github.com/gorilla/mux"
-	_ "github.com/mattn/go-sqlite3"
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/valyala/fasthttp"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"google.golang.org/api/option"
 	"log"
-	"net/http"
 	"os"
-	"os/signal"
 	"time"
 )
 
 const (
-	VERSION = "1.6.0"
+	Version = "1.7.0"
 	MongoCollectionFiles = "files"
 	FixedPort = "3030"
 )
 
-var (
-	filesUploaded = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "hexfs_uploaded",
-		Help: "Files uploaded since the process started.",
-	}, []string{"container"})
-	heapUsage = prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "hexfs_heap_usage",
-		Help: "Memory in use by this process in bytes",
-	}, []string{"container"})
-)
+func handleCORS(h fasthttp.RequestHandler) fasthttp.RequestHandler {
+	return func(ctx *fasthttp.RequestCtx) {
+		ctx.Response.Header.Set("Access-Control-Allow-Origin", "*")
+		ctx.Response.Header.Set("Access-Control-Allow-Methods", "OPTIONS,POST,GET")
+		ctx.Response.Header.Set("Access-Control-Allow-Headers", "Authorization")
+		if ctx.Request.Header.IsOptions() {
+			ctx.SetStatusCode(fasthttp.StatusOK)
+			return
+		} else {
+			h(ctx)
+		}
+	}
+}
 
-func applyCORS(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "OPTIONS,POST,GET")
-		w.Header().Set("Access-Control-Allow-Headers", "Authorization")
-		if r.Method == http.MethodOptions {
-			SendNothing(&w)
+func (b *BaseHandler) handleHTTPRequest(ctx *fasthttp.RequestCtx) {
+
+	switch string(ctx.Path()) {
+	case "/upload":
+		fasthttp.TimeoutHandler(b.ServeUpload, time.Minute * 15, "Upload timed out")(ctx)
+		break
+	case "/favicon.ico":
+		ServeFavicon(ctx)
+		break
+	case "/file/delete":
+		if !b.IsAuthorized(ctx) {
 			return
 		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-func serve(ctx context.Context, r *mux.Router) (err error) {
-	srv := &http.Server{
-		Addr:         ":" + FixedPort,
-		WriteTimeout: time.Second * 15,
-		ReadTimeout:  time.Second * 15,
-		IdleTimeout:  time.Second * 60,
-		Handler: limit(applyCORS(r)),
-	}
-	go func() {
-		if err = srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Listen error: %s\n", err)
+		fasthttp.TimeoutHandler(b.ServeDelete, time.Minute * 5, "Deleting files timed out")(ctx)
+		break
+	case "/file/info":
+		fasthttp.TimeoutHandler(b.ServeInformation, time.Second * 15, "File into retrieval timed out")(ctx)
+		break
+	case "/auth/check":
+		ServeCheckAuth(ctx)
+		break
+	case "/server/ping":
+		ServePing(ctx)
+		break
+	default:
+		if !ctx.IsGet() {
+			ctx.SetStatusCode(fasthttp.StatusNotFound)
+			return
 		}
-	}()
-
-	log.Printf("⬡ Server started and bound to port " + FixedPort)
-
-	<-ctx.Done()
-
-	log.Printf("⬡ Server has received a signal to stop.")
-
-	ctxShutDown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer func() {
-		cancel()
-	}()
-
-	if err = srv.Shutdown(ctxShutDown); err != nil {
-		log.Fatalf("Server shutdown failed: %s", err)
+		fasthttp.TimeoutHandler(b.ServeFile, time.Minute * 3, "Fetching file timed out")(ctx)
 	}
 
-	log.Printf("⬡ Server shut down gracefully.")
-
-	if err == http.ErrServerClosed {
-		err = nil
-	}
-	return
 }
-
 func main() {
-	fmt.Println("hexFS file host software is now starting.")
-	fmt.Print("You are running version " + VERSION + "\n\n")
+	fmt.Println("hexfs file host software is now starting.")
+	fmt.Print("You are running version " + Version + "\n\n")
 
 	log.Println("⬡ Validating environment variables")
 	ValidateEnv()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
 	defer cancel()
 
 	log.Println("⬡ Establishing MongoDB connection to database \"" + os.Getenv(MongoDatabase) + "\"")
@@ -114,46 +96,32 @@ func main() {
 	}
 	defer c.Close()
 	b := NewBaseHandler(mongoClient.Database(os.Getenv(MongoDatabase)), c)
-	r := mux.NewRouter()
 
-	log.Println("⬡ Configuring routes.")
-
-	// Protected Routes (cannot be accessed without the key)
-	r.HandleFunc("/file/delete/id/{id}", b.ProtectedRoute(b.ServeDelete)).Methods(http.MethodPost)
-	r.HandleFunc("/file/delete/ip/{ip}", b.ProtectedRoute(b.ServeDelete)).Methods(http.MethodPost)
-	r.HandleFunc("/file/delete/sha256/{sha256}", b.ProtectedRoute(b.ServeDelete)).Methods(http.MethodPost)
-
-	// Conditional Routes (can be accessed without the key, but behavior is dynamic)
-	r.HandleFunc("/file/info/{id}", b.ServeInformation).Methods(http.MethodGet)
-	r.HandleFunc("/", b.ServeUpload).Methods(http.MethodPost, http.MethodOptions)
-
-	// Public Routes (accessible without the key)
-	r.HandleFunc("/auth/check", ServeCheckAuth).Methods(http.MethodGet)
-	r.HandleFunc("/server/ping", ServePing).Methods(http.MethodGet)
-	r.HandleFunc("/favicon.ico", ServeFavicon).Methods(http.MethodGet)
-	r.HandleFunc("/{id}", b.ServeFile).Methods(http.MethodGet)
-	r.HandleFunc("/", ServeNotFound).Methods(http.MethodGet)
-	r.MethodNotAllowedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { SendTextResponse(&w, "Method not allowed.", http.StatusMethodNotAllowed) })
-
-	registry := prometheus.NewRegistry()
-	registry.MustRegister(filesUploaded)
-	registry.MustRegister(heapUsage)
-
-	StartMetricsServer(registry)
-	log.Println("⬡ Metrics server started and bound to port 3031.")
-
-	InitRatelimiter()
-
-	channel := make(chan os.Signal, 1)
-	signal.Notify(channel, os.Interrupt)
-
-	ctx, cancel = context.WithCancel(context.Background())
-	go func() {
-		oscall := <-channel
-		log.Printf("Received system call: %+v", oscall)
-		cancel()
-	}()
-	if err := serve(ctx, r); err != nil {
-		log.Printf("Failed to serve: +%v\n", err)
+	s := &fasthttp.Server{
+		Handler:                            handleCORS(b.handleHTTPRequest),
+		ErrorHandler:                       nil,
+		HeaderReceived:                     nil,
+		ContinueHandler:                    nil,
+		Name:                               "hexfs v" + Version,
+		Concurrency:                        128 * 256,
+		DisableKeepalive:                   false,
+		ReadTimeout:                        20 * time.Minute,
+		WriteTimeout:                       20 * time.Minute,
+		MaxConnsPerIP:                      256,
+		TCPKeepalive:                       false,
+		TCPKeepalivePeriod:                 0,
+		MaxRequestBodySize:                 int(b.MaxSizeBytes) + 1024,
+		ReduceMemoryUsage:                  false,
+		GetOnly:                            false,
+		DisablePreParseMultipartForm:       false,
+		LogAllErrors:                       false,
+		DisableHeaderNamesNormalizing:      false,
+		NoDefaultServerHeader:              false,
+		NoDefaultDate:                      false,
+		NoDefaultContentType:               false,
+		KeepHijackedConns:                  false,
+	}
+	if err = s.ListenAndServe(":" + FixedPort); err != nil {
+		log.Fatalf("Listen error: %s\n", err)
 	}
 }

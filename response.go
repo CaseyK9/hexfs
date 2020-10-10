@@ -3,28 +3,30 @@ package main
 import (
 	json2 "encoding/json"
 	"fmt"
+	"github.com/valyala/fasthttp"
 	"log"
-	"net/http"
 )
 
 // SendTextResponse sends a plaintext response to the client along with an HTTP status code.
-func SendTextResponse(w *http.ResponseWriter, msg string, code int) {
-	if code == http.StatusInternalServerError {
+func SendTextResponse(ctx *fasthttp.RequestCtx, msg string, code int) {
+	ctx.Response.Header.SetContentType("text/plain; charset=utf8")
+	if code == fasthttp.StatusInternalServerError {
 		log.Printf(fmt.Sprintf("Unhandled error!, %s", msg))
 	}
-	(*w).WriteHeader(code)
-	_, _ = fmt.Fprint(*w, msg)
+
+	ctx.SetStatusCode(code)
+	_, _ = fmt.Fprint(ctx.Response.BodyWriter(), msg)
 	return
 }
 
 // SendJSONResponse sends a JSON encoded response to the client along with an HTTP status code of 200 OK.
-func SendJSONResponse(w *http.ResponseWriter, json interface{}) {
-	(*w).Header().Set("Content-Type", "application/json")
-	_ = json2.NewEncoder(*w).Encode(json)
+func SendJSONResponse(ctx *fasthttp.RequestCtx, json interface{}) {
+	ctx.SetContentType("application/json")
+	_ = json2.NewEncoder(ctx.Response.BodyWriter()).Encode(json)
 }
 
 // SendNothing sends 204 No Content.
-func SendNothing(w *http.ResponseWriter) {
-	(*w).WriteHeader(http.StatusNoContent)
+func SendNothing(ctx *fasthttp.RequestCtx) {
+	ctx.SetStatusCode(fasthttp.StatusNoContent)
 	return
 }

@@ -1,17 +1,16 @@
 package main
 
 import (
-	"net/http"
+	"github.com/valyala/fasthttp"
 )
 
 // ServeCheckAuth validates either the standard or master key.
-func ServeCheckAuth(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
-	if GetAuthorizationLevel(r.Header.Get("authorization")) == NotAuthorized {
-		SendTextResponse(&w, "Not authorized.", http.StatusUnauthorized)
+func ServeCheckAuth(ctx *fasthttp.RequestCtx) {
+	if GetAuthorizationLevel(ctx.Request.Header.Peek("Authorization")) == NotAuthorized {
+		SendTextResponse(ctx, "Not authorized.", fasthttp.StatusUnauthorized)
 		return
 	}
-	SendNothing(&w)
+	SendNothing(ctx)
 }
 
 

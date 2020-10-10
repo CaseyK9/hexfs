@@ -1,15 +1,14 @@
 package main
 
 import (
-	"net/http"
+	"github.com/valyala/fasthttp"
 	"os"
 )
 
-func ServeNotFound(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
-	if r.URL.Path == "/" && r.Method == http.MethodGet && len(os.Getenv(Frontend)) != 0 {
-		http.Redirect(w, r, os.Getenv(Frontend), http.StatusMovedPermanently)
+func ServeNotFound(ctx *fasthttp.RequestCtx) {
+	if ctx.Path()[0] == '/' && ctx.IsGet() && len(os.Getenv(Frontend)) != 0 {
+		ctx.Redirect(os.Getenv(Frontend), fasthttp.StatusTemporaryRedirect)
 		return
 	}
-	SendTextResponse(&w, "Page not found.", http.StatusNotFound)
+	SendTextResponse(ctx, "Page not found", fasthttp.StatusNotFound)
 }

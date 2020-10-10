@@ -1,12 +1,20 @@
 package main
 
-import "net/http"
+import (
+	"fmt"
+	"github.com/valyala/fasthttp"
+	"strings"
+)
 
 // GetIP get the IP from the header
-func GetIP(r *http.Request) string {
-	forwarded := r.Header.Get("X-FORWARDED-FOR")
-	if forwarded != "" {
-		return forwarded
+func GetIP(ctx *fasthttp.RequestCtx) string {
+	return string(ctx.RemoteIP())
+}
+
+func GetRoot(ctx *fasthttp.RequestCtx) string {
+	protocol := "https"
+	if strings.Contains(string(ctx.Request.Host()), "localhost:") {
+		protocol = "http"
 	}
-	return r.RemoteAddr
+	return fmt.Sprintf("%s://%s", protocol, ctx.Request.Host())
 }

@@ -1,31 +1,33 @@
 package main
 
 import (
-	"github.com/gorilla/mux"
-	"net/http"
+	"github.com/valyala/fasthttp"
 	"path"
 	"strings"
 )
 
-func (b *BaseHandler) ServeInformation(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
-	id := mux.Vars(r)
-	ext := path.Ext(id["id"])
+func (b *BaseHandler) ServeInformation(ctx *fasthttp.RequestCtx) {
+	id := ctx.QueryArgs().Peek("id")
+	if len(id) == 0 {
+		SendTextResponse(ctx, "No ID to search given. ", fasthttp.StatusBadRequest)
+		return
+	}
+	ext := path.Ext(string(id))
 
-	d, err := b.GetFileData(FileData{ID: strings.TrimSuffix(id["id"], ext), Ext: ext })
+	d, err := b.GetFileData(FileData{ID: strings.TrimSuffix(string(id), ext), Ext: ext })
 	if err != nil {
-		SendTextResponse(&w, "Failed to fetch information. " + err.Error(), http.StatusInternalServerError)
+		SendTextResponse(ctx, "Failed to fetch information. " + err.Error(), fasthttp.StatusInternalServerError)
 		return
 	}
 	if d == nil {
-		SendTextResponse(&w, "Not found.", http.StatusNotFound)
+		SendTextResponse(ctx, "Not found.", fasthttp.StatusNotFound)
 		return
 	}
 	// Redact IP if not using the master key.
-	if GetAuthorizationLevel(r.Header.Get("authorization")) != IsMasterKey {
+	if GetAuthorizationLevel(ctx.Request.Header.Peek("Authorization")) != IsMasterKey {
 		d.IP = ""
 	}
-	SendJSONResponse(&w, d)
+	SendJSONResponse(ctx, d)
 	return
 }
 

@@ -4,11 +4,9 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"github.com/prometheus/client_golang/prometheus"
+	"fmt"
+	"github.com/valyala/fasthttp"
 	"io"
-	"log"
-	"net/http"
-	"net/url"
 	"os"
 	"path"
 	"sync"
@@ -16,66 +14,44 @@ import (
 )
 
 const IdLen = 9
+const fileHandler = "file"
 
 // ServeUpload handles all incoming POST requests to /. It will take a multipart form, parse the file, then write it to both GCS and a hasher at the same time.
 // The file's information will also be inserted into the database.
-func (b *BaseHandler) ServeUpload(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
-	r.Body = http.MaxBytesReader(w, r.Body, b.MaxSizeBytes + 1024)
-	parseErr := (*r).ParseMultipartForm(32 << 20)
-	if parseErr != nil {
-		if parseErr == io.ErrUnexpectedEOF {
-			SendTextResponse(&w, "File exceeds maximum size allowed.", http.StatusBadRequest)
-		} else {
-			SendTextResponse(&w, "Wrong or malformed body sent.", http.StatusBadRequest)
-		}
-		return
-	}
-
-	auth := GetAuthorizationLevel(r.Header.Get("authorization"))
+func (b *BaseHandler) ServeUpload(ctx *fasthttp.RequestCtx) {
+	auth := GetAuthorizationLevel(ctx.Request.Header.Peek("Authorization"))
 	if auth == NotAuthorized && os.Getenv(PublicMode) != "1" {
-		SendTextResponse(&w, "Not authorized to upload.", http.StatusUnauthorized)
+		SendTextResponse(ctx, "Not authorized to upload.", fasthttp.StatusUnauthorized)
 		return
 	}
 
-	urlToSend := os.Getenv(Endpoint)
-	if r.FormValue("proxy") != "" {
-		urlToSend = r.FormValue("proxy")
-	}
-	baseUrl, urlErr := url.Parse(urlToSend)
-	if urlErr != nil {
-		SendTextResponse(&w, "Malformed endpoint. " + urlErr.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	file, handler, err := r.FormFile("file") // Retrieve the file from form data
-	if err != nil {
-		SendTextResponse(&w, "No files were uploaded.", http.StatusBadRequest)
-		return
-	}
-
-	// Close form file
-	defer func() {
-		fileCloseErr := file.Close()
-		if fileCloseErr != nil {
-			log.Println("Couldn't close form file: " + fileCloseErr.Error())
+	mp, e := ctx.Request.MultipartForm()
+	if e != nil {
+		if e == fasthttp.ErrNoMultipartForm {
+			SendTextResponse(ctx, "Multipart form not sent.", fasthttp.StatusBadRequest)
+			return
 		}
-	}()
+		return
+	}
+	if len(mp.File[fileHandler]) == 0 {
+		SendTextResponse(ctx, "No files were uploaded.", fasthttp.StatusBadRequest)
+	}
+	f := mp.File[fileHandler][0]
 
-	if len(path.Ext(handler.Filename)) > 20 {
-		SendTextResponse(&w, "File extension cannot be greater than 20 characters.", http.StatusBadRequest)
+	if len(path.Ext(f.Filename)) > 20 {
+		SendTextResponse(ctx, "File extension cannot be greater than 12 characters.", fasthttp.StatusBadRequest)
 		return
 	}
 
-	if len(handler.Filename) > 128 {
-		SendTextResponse(&w, "File name should not exceed 128 characters.", http.StatusBadRequest)
+	if len(f.Filename) > 256 {
+		SendTextResponse(ctx, "File name should not exceed 256 characters.", fasthttp.StatusBadRequest)
 		return
 	}
 	if os.Getenv(DisableFileBlacklist) == "0" {
 		fileBlacklist := []string{".exe", ".com", ".dll", ".vbs", ".html", ".mhtml", ".xls", ".doc", ".xlsx", ".sh", ".bat", ".zsh", ""}
-		for _, f := range fileBlacklist {
-			if path.Ext(handler.Filename) == f {
-				SendTextResponse(&w, "File extension prohibited.", http.StatusForbidden)
+		for _, t := range fileBlacklist {
+			if path.Ext(f.Filename) == t {
+				SendTextResponse(ctx, "File extension prohibited.", fasthttp.StatusBadRequest)
 				return
 			}
 		}
@@ -89,40 +65,46 @@ func (b *BaseHandler) ServeUpload(w http.ResponseWriter, r *http.Request) {
 	}()
 	wg.Wait()
 	fileId := <- randomStringChan
-	fileName := fileId + path.Ext(handler.Filename)
+	fileName := fileId + path.Ext(f.Filename)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second * 10)
+	writerCtx, cancel := context.WithTimeout(context.Background(), time.Minute * 5)
 	defer cancel()
 
-	wc := b.GCSClient.Bucket(os.Getenv(GCSBucketName)).Object(fileName).Key(b.Key).NewWriter(ctx)
+	wc := b.GCSClient.Bucket(os.Getenv(GCSBucketName)).Object(fileName).Key(b.Key).NewWriter(writerCtx)
 	defer wc.Close()
 
 	hasher := sha256.New()
 
-	written, writeErr := io.Copy(io.MultiWriter(wc, hasher), file)
+	openedFile, e := f.Open()
+	if e != nil {
+		SendTextResponse(ctx, "Failed to open file from request: " + e.Error(), fasthttp.StatusInternalServerError)
+		return
+	}
+	defer openedFile.Close()
+
+	written, writeErr := io.Copy(io.MultiWriter(wc, hasher), openedFile)
 	if writeErr != nil {
-		SendTextResponse(&w, "There was a problem writing the file to GCS and/or detecting the SHA256 signature. " + writeErr.Error(), http.StatusInternalServerError)
+		SendTextResponse(ctx, "There was a problem writing the file to GCS and/or detecting the SHA256 signature. " + writeErr.Error(), fasthttp.StatusInternalServerError)
 		return
 	}
 
-	ctx, cancel = context.WithTimeout(context.Background(), time.Second * 5)
+	dbCtx, cancel := context.WithTimeout(context.Background(), time.Second * 30)
 	defer cancel()
 
-	_, e := b.Database.Collection(MongoCollectionFiles).InsertOne(ctx, &FileData{
+	_, e = b.Database.Collection(MongoCollectionFiles).InsertOne(dbCtx, &FileData{
 		ID:                fileId,
-		Ext:               path.Ext(handler.Filename),
+		Ext:               path.Ext(f.Filename),
 		SHA256:            hex.EncodeToString(hasher.Sum(nil)),
 		UploadedTimestamp: time.Now().Format(time.RFC3339),
-		IP:                GetIP(r),
+		IP:                GetIP(ctx),
 		Size:              written,
 	})
 
 	if e != nil {
-		SendTextResponse(&w, "Failed to insert new document. " + e.Error(), http.StatusInternalServerError)
+		SendTextResponse(ctx, "Failed to insert new document. " + e.Error(), fasthttp.StatusInternalServerError)
 		return
 	}
-	filesUploaded.With(prometheus.Labels{"container": os.Getenv(ContainerNickname)}).Inc()
 
-	baseUrl.Path = fileName
-	SendTextResponse(&w, baseUrl.String(), http.StatusOK)
+	u := fmt.Sprintf("%s/%s", GetRoot(ctx), fileName)
+	SendTextResponse(ctx, u, fasthttp.StatusOK)
 }

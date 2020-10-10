@@ -13,7 +13,6 @@ const (
 	StandardKey = "HFS_STANDARD_KEY"
 	PublicMode = "HFS_PUBLIC_MODE"
 	MaxSizeBytes = "HFS_MAX_SIZE_BYTES"
-	Endpoint = "HFS_ENDPOINT"
 	GCSBucketName = "GCS_BUCKET_NAME"
 	GoogleApplicationCredentials = "GOOGLE_APPLICATION_CREDENTIALS"
 	GCSSecretKey = "GCS_SECRET_KEY"
@@ -26,14 +25,10 @@ const (
 
 // ValidateEnv validates the environment variables and throws log.Fatal if a variable is not correctly set or not set at all.
 func ValidateEnv() {
-	if os.Getenv(Endpoint) == os.Getenv(Frontend) {
-		log.Fatal("Endpoint and frontend URLs cannot be the same because an infinite redirection loop would happen.")
-	}
 	for _, v := range []string{
 		MasterKey,
 		StandardKey,
 		MaxSizeBytes,
-		Endpoint,
 		GCSBucketName,
 		GoogleApplicationCredentials,
 		GCSSecretKey,
@@ -45,7 +40,6 @@ func ValidateEnv() {
 			switch v {
 			case MasterKey:
 			case StandardKey:
-			case Endpoint:
 			case GCSBucketName:
 			case GCSSecretKey:
 			case GoogleApplicationCredentials:
