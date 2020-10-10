@@ -6,9 +6,18 @@ import (
 	"strings"
 )
 
-// GetIP get the IP from the header
+// GetIP get the IP from the header.
+// It will try to fetch the client IP forwarded from Cloudflare.
 func GetIP(ctx *fasthttp.RequestCtx) string {
-	return string(ctx.RemoteIP())
+	forwardedIP := ctx.Request.Header.Peek("X-Forwarded-For")
+	if len(forwardedIP) != 0 {
+		return string(forwardedIP)
+	}
+	forwardedIP = ctx.Request.Header.Peek("X-Real-IP")
+	if len(forwardedIP) != 0 {
+		return string(forwardedIP)
+	}
+	return ctx.RemoteIP().String()
 }
 
 func GetRoot(ctx *fasthttp.RequestCtx) string {
