@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/valyala/fasthttp"
+	"github.com/vysiondev/httputils/net"
+	"github.com/vysiondev/httputils/rand"
 	"io"
 	"os"
 	"path"
@@ -62,7 +64,7 @@ func (b *BaseHandler) ServeUpload(ctx *fasthttp.RequestCtx) {
 	randomStringChan := make(chan string, 1)
 	go func() {
 		wg.Add(1)
-		RandStringBytesMaskImprSrcUnsafe(IdLen, randomStringChan, func() { wg.Done() })
+		rand.RandBytes(IdLen, randomStringChan, func() { wg.Done() })
 	}()
 	wg.Wait()
 	fileId := <- randomStringChan
@@ -97,7 +99,7 @@ func (b *BaseHandler) ServeUpload(ctx *fasthttp.RequestCtx) {
 		Ext:               path.Ext(f.Filename),
 		SHA256:            hex.EncodeToString(hasher.Sum(nil)),
 		UploadedTimestamp: time.Now().Format(time.RFC3339),
-		IP:                GetIP(ctx),
+		IP:                net.GetIP(ctx),
 		Size:              written,
 	})
 
@@ -106,6 +108,6 @@ func (b *BaseHandler) ServeUpload(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	u := fmt.Sprintf("%s/%s", GetRoot(ctx), fileName)
+	u := fmt.Sprintf("%s/%s", net.GetRoot(ctx), fileName)
 	SendTextResponse(ctx, u, fasthttp.StatusOK)
 }

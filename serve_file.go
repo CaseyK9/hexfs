@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/valyala/fasthttp"
+	"github.com/vysiondev/httputils/net"
 	"io"
 	"os"
 	"path"
@@ -73,7 +74,7 @@ func (b *BaseHandler) ServeFile(ctx *fasthttp.RequestCtx) {
 			ctx.Response.Header.Add("Pragma", "no-cache")
 			ctx.Response.Header.Add("Expires", "0")
 		}
-		url := fmt.Sprintf("%s/%s?%s=true", GetRoot(ctx), f.ID + f.Ext, rawParam)
+		url := fmt.Sprintf("%s/%s?%s=true", net.GetRoot(ctx), f.ID + f.Ext, rawParam)
 		_, _ = fmt.Fprint(ctx.Response.BodyWriter(), strings.Replace(discordHTML, "{{.}}", url, 1))
 		return
 	}
