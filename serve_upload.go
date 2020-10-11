@@ -31,6 +31,7 @@ func (b *BaseHandler) ServeUpload(ctx *fasthttp.RequestCtx) {
 			SendTextResponse(ctx, "Multipart form not sent.", fasthttp.StatusBadRequest)
 			return
 		}
+		SendTextResponse(ctx, "Multipart form not sent.", fasthttp.StatusBadRequest)
 		return
 	}
 	if len(mp.File[fileHandler]) == 0 {
