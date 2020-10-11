@@ -2,6 +2,7 @@ FROM golang:1.15-alpine AS build
 RUN apk update && apk add --no-cache git
 RUN apk --no-cache add ca-certificates
 
+WORKDIR /build/hexfs
 COPY go.mod ./
 RUN go mod download
 
