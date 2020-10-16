@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/vysiondev/hexfs/hlog"
 	"log"
 	"os"
 	"strconv"
@@ -21,6 +22,11 @@ const (
 	MongoDatabase = "HFS_MONGO_DATABASE"
 	ContainerNickname = "HFS_CONTAINER_NICKNAME"
 	FaviconLocation = "HFS_FAVICON_LOCATION"
+	RedisConnectionURI = "HFS_REDIS_CONNECTION_URI"
+	RedisPassword = "HFS_REDIS_PASSWORD"
+	RedisDbInt = "HFS_REDIS_DB"
+	MaxCapacity = "HFS_MAX_CAPACITY"
+	Port = "HFS_PORT"
 )
 
 // ValidateEnv validates the environment variables and throws log.Fatal if a variable is not correctly set or not set at all.
@@ -35,6 +41,10 @@ func ValidateEnv() {
 		MongoConnectionURI,
 		MongoDatabase,
 		ContainerNickname,
+		RedisConnectionURI,
+		RedisPassword,
+		MaxCapacity,
+		Port,
 	} {
 		if len(os.Getenv(v)) == 0 {
 			switch v {
@@ -45,16 +55,18 @@ func ValidateEnv() {
 			case GoogleApplicationCredentials:
 			case MongoConnectionURI:
 			case MongoDatabase:
+			case RedisConnectionURI:
+			case MaxCapacity:
 				missing(v)
 				break
 			case MaxSizeBytes:
-				log.Println("⬡ Setting max size of files to 50 MiB because it was not set")
+				hlog.Log("config", hlog.LevelInfo, "Setting max size of files to 50 MiB because it was not set")
 				e := os.Setenv(MaxSizeBytes, "52428800")
 				if e != nil { cannotSet(v) }
 				break
 			case ContainerNickname:
 				n := "hexfs_" + strconv.FormatInt(time.Now().Unix(), 10)
-				log.Println("⬡ Setting default container nickname to " + n + " because it was not set")
+				hlog.Log("config", hlog.LevelInfo, "Setting default container nickname to " + n + " because it was not set")
 				e := os.Setenv(ContainerNickname, n)
 				if e != nil { cannotSet(v) }
 				break

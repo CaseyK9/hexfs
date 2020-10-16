@@ -3,6 +3,7 @@ package main
 import (
 	"cloud.google.com/go/storage"
 	"encoding/base64"
+	"github.com/go-redis/redis/v8"
 	"go.mongodb.org/mongo-driver/mongo"
 	"log"
 	"os"
@@ -12,11 +13,12 @@ import (
 type BaseHandler struct {
 	Database *mongo.Database
 	GCSClient *storage.Client
+	RedisClient *redis.Client
 	Key []byte
 	MaxSizeBytes int64
 }
 
-func NewBaseHandler(db *mongo.Database, gcsClient *storage.Client) *BaseHandler {
+func NewBaseHandler(db *mongo.Database, gcsClient *storage.Client, redisClient *redis.Client) *BaseHandler {
 	k, e := base64.StdEncoding.DecodeString(os.Getenv(GCSSecretKey))
 	if e != nil {
 		log.Fatal("Key not properly formatted to Base64.")
@@ -31,5 +33,6 @@ func NewBaseHandler(db *mongo.Database, gcsClient *storage.Client) *BaseHandler 
 		GCSClient: gcsClient,
 		Key: k,
 		MaxSizeBytes: i,
+		RedisClient: redisClient,
 	}
 }

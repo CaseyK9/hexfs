@@ -8,9 +8,8 @@ Do-it-yourself modern file host software, written in Golang. An excellent, effic
 
 ### What can you use it for?
 
-- Your screenshots from ShareX
+- Your screenshots from ShareX or MagicCap
 - Having *your* own platform to store *your* files on, not someone else's. Maybe you don't trust them. Or maybe you have a cool domain you want to run this under.
-
 
 ### About the project
 
@@ -19,17 +18,17 @@ Do-it-yourself modern file host software, written in Golang. An excellent, effic
 - Simple access system - either make it private, share a standard key with friends which allows them to upload, not delete, or open to the public (though the latter isn't recommended!).
 - Bulk delete files by IP, SHA256 hash and individual IDs. 
 - Built-in file extension filter--protect your users from malicious extensions.
-- Final executable is small - only about 13 MB in size.
+- Final executable is small - only about 16 MB in size.
+- Rate limiting and max capacity watch (to limit the amount of files that can be stored), handled by Redis
 - It's not written in JavaScript. 
 - The logo is very cool. :^)
 
 ### Some key notes
 
-- You need to do a lot of things yourself, the program will only help you with having a connection between MongoDB, the uploader, and Google Cloud Storage. This means you must have your own nginx setup ready, MongoDB instance, firewall configuration, etc etc.
+- OK so basically you need a lot of shit like MongoDB, Redis, GCS IAM service account key, NGINX setup, firewall configuration, etc.
 - hexFS cannot download files on your behalf from the Internet. This is deliberately a security decision.
 - hexFS will run completely fine if not containerized, but it's still *recommended*! You could use tmux or systemd to run it. Just throwing out ideas.
 - There are no fancy plugins or extensions, or frontend template for that matter. Make them yourself.
-- hexFS will always listen on 3030 (main server).
 
 ### How to run
 

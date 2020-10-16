@@ -5,12 +5,14 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/go-redis/redis/v8"
 	"github.com/valyala/fasthttp"
 	"github.com/vysiondev/httputils/net"
 	"github.com/vysiondev/httputils/rand"
 	"io"
 	"os"
 	"path"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -41,8 +43,39 @@ func (b *BaseHandler) ServeUpload(ctx *fasthttp.RequestCtx) {
 	}
 	f := mp.File[fileHandler][0]
 
+	currentCap, err := b.RedisClient.Get(ctx, RedisKeyCurrentCapacity).Result()
+	if err == redis.Nil {
+		SendTextResponse(ctx, "Current capacity is unknown. For this reason, uploads are disabled.", fasthttp.StatusInternalServerError)
+		return
+	} else if err != nil {
+		SendTextResponse(ctx, "Failed to determine the current capacity of the host. " + err.Error(), fasthttp.StatusInternalServerError)
+		return
+	}
+	maxCap, err := b.RedisClient.Get(ctx, RedisKeyMaxCapacity).Result()
+	if err == redis.Nil {
+		SendTextResponse(ctx, "Maximum capacity is unknown. For this reason, uploads are disabled.", fasthttp.StatusInternalServerError)
+		return
+	} else if err != nil {
+		SendTextResponse(ctx, "Failed to determine the maximum capacity of the host. " + err.Error(), fasthttp.StatusInternalServerError)
+		return
+	}
+	currentCapParse, err := strconv.ParseInt(currentCap, 10, 64)
+	if err != nil {
+		SendTextResponse(ctx, "Failed to parse current capacity of the host. " + err.Error(), fasthttp.StatusInternalServerError)
+		return
+	}
+	maxCapParse, err := strconv.ParseInt(maxCap, 10, 64)
+	if err != nil {
+		SendTextResponse(ctx, "Failed to parse maximum capacity of the host. " + err.Error(), fasthttp.StatusInternalServerError)
+		return
+	}
+	if currentCapParse + f.Size > maxCapParse {
+		SendTextResponse(ctx, "Host has reached its max capacity. No new files are allowed.", fasthttp.StatusBadRequest)
+		return
+	}
+
 	if len(path.Ext(f.Filename)) > 20 {
-		SendTextResponse(ctx, "File extension cannot be greater than 12 characters.", fasthttp.StatusBadRequest)
+		SendTextResponse(ctx, "File extension cannot be greater than 20 characters.", fasthttp.StatusBadRequest)
 		return
 	}
 
@@ -105,9 +138,17 @@ func (b *BaseHandler) ServeUpload(ctx *fasthttp.RequestCtx) {
 
 	if e != nil {
 		SendTextResponse(ctx, "Failed to insert new document. " + e.Error(), fasthttp.StatusInternalServerError)
+		_, e := b.DeleteFiles(&FileData{ID:fileId})
+		if e != nil {
+			SendTextResponse(ctx, "Failed to delete file after failing to insert document. " + e.Error(), fasthttp.StatusInternalServerError)
+		}
 		return
 	}
 
+	e = b.RedisClient.Set(dbCtx, RedisKeyCurrentCapacity, currentCapParse + f.Size, 0).Err()
+	if e != nil {
+		SendTextResponse(ctx, "Failed to update capacity. " + e.Error(), fasthttp.StatusInternalServerError)
+	}
 	u := fmt.Sprintf("%s/%s", net.GetRoot(ctx), fileName)
 	SendTextResponse(ctx, u, fasthttp.StatusOK)
 }
