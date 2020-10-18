@@ -15,5 +15,6 @@ COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /bin/hexfs /bin/hexfs
 COPY --from=build /build/hexfs/conf /bin/conf
 
+WORKDIR /bin
 EXPOSE 3030
-ENTRYPOINT ["/bin/hexfs"]
+ENTRYPOINT ["hexfs"]

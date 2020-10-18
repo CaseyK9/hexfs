@@ -73,7 +73,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Could not instantiate MongoDB client: " + err.Error())
 	}
-	hlog.Log("mongodb", hlog.LevelSuccess, "Connection established. Pinging database \"" + configuration.Net.Mongo.URI + "\"")
+	hlog.Log("mongodb", hlog.LevelSuccess, "Connection established. Pinging instance")
 	e := mongoClient.Ping(ctx, readpref.Primary())
 	if e != nil {
 		log.Fatal("Could not ping MongoDB database: " + e.Error())
