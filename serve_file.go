@@ -68,7 +68,7 @@ func (b *BaseHandler) ServeFile(ctx *fasthttp.RequestCtx) {
 
 	if discordBotRegex.Match(ctx.Request.Header.UserAgent()) && !ctx.QueryArgs().Has(rawParam) {
 		if wc.Attrs.ContentType == "image/png" || wc.Attrs.ContentType == "image/jpeg" || wc.Attrs.ContentType == "image/gif" || wc.Attrs.ContentType == "image/apng" {
-			//ctx.Response.Header.SetContentType("text/html; charset=utf8")
+			ctx.Response.Header.SetContentType("text/html; charset=utf8")
 			ctx.Response.Header.Add("Cache-Control", "no-cache, no-store, must-revalidate")
 			ctx.Response.Header.Add("Pragma", "no-cache")
 			ctx.Response.Header.Add("Expires", "0")
@@ -77,7 +77,7 @@ func (b *BaseHandler) ServeFile(ctx *fasthttp.RequestCtx) {
 		_, _ = fmt.Fprint(ctx.Response.BodyWriter(), strings.Replace(discordHTML, "{{.}}", url, 1))
 		return
 	}
-
+	ctx.Response.Header.Set("Content-Disposition", "inline")
 	ctx.Response.Header.Set("Content-Length", strconv.FormatInt(wc.Attrs.Size, 10))
 	ctx.Response.Header.Set("Content-Type", wc.Attrs.ContentType)
 	_, copyErr := io.Copy(ctx.Response.BodyWriter(), wc)
