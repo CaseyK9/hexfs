@@ -6,15 +6,13 @@ import (
 	"os"
 )
 
+const FaviconName = "./conf/favicon.ico"
+
 func ServeFavicon(ctx *fasthttp.RequestCtx) {
-	if len(os.Getenv(FaviconLocation)) == 0 {
-		ctx.Response.SetStatusCode(fasthttp.StatusNotFound)
-		return
-	}
-	f, e := os.OpenFile(os.Getenv(FaviconLocation), os.O_RDONLY, 0666)
+	f, e := os.OpenFile(FaviconName, os.O_RDONLY, 0666)
 	if e != nil {
 		if e == os.ErrNotExist {
-			ctx.Response.SetStatusCode(fasthttp.StatusNoContent)
+			ctx.Response.SetStatusCode(fasthttp.StatusNotFound)
 		} else {
 			ctx.Response.SetStatusCode(fasthttp.StatusInternalServerError)
 		}

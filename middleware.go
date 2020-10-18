@@ -54,10 +54,10 @@ func (b *BaseHandler) handleHTTPRequest(ctx *fasthttp.RequestCtx) {
 		fasthttp.TimeoutHandler(b.ServeInformation, time.Second * 15, "File into retrieval timed out")(ctx)
 		break
 	case "/auth/check":
-		ServeCheckAuth(ctx)
+		b.ServeCheckAuth(ctx)
 		break
 	case "/server/ping":
-		ServePing(ctx)
+		b.ServePing(ctx)
 		break
 	case "/server/capacity":
 		fasthttp.TimeoutHandler(b.ServeCapacity, time.Second * 15, "Capacity check timed out")(ctx)

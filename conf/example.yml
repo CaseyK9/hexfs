@@ -1,0 +1,23 @@
+security:
+  masterkey:
+  standardkey:
+  disablefileblacklist:
+  maxsizebytes: 52428800
+  capacity: 5
+  publicmode: false
+
+server:
+  port:
+  frontend: http://your-website.com
+
+net:
+  mongo:
+    uri:
+    database:
+  redis:
+    uri:
+    password:
+    db: 0
+  gcs:
+    secretkey:
+    bucketname:

@@ -10,7 +10,6 @@ import (
 	"github.com/vysiondev/httputils/net"
 	"github.com/vysiondev/httputils/rand"
 	"io"
-	"os"
 	"path"
 	"strconv"
 	"sync"
@@ -23,8 +22,8 @@ const fileHandler = "file"
 // ServeUpload handles all incoming POST requests to /. It will take a multipart form, parse the file, then write it to both GCS and a hasher at the same time.
 // The file's information will also be inserted into the database.
 func (b *BaseHandler) ServeUpload(ctx *fasthttp.RequestCtx) {
-	auth := GetAuthorizationLevel(ctx.Request.Header.Peek("Authorization"))
-	if auth == NotAuthorized && os.Getenv(PublicMode) != "1" {
+	auth := b.GetAuthorizationLevel(ctx.Request.Header.Peek("Authorization"))
+	if auth == NotAuthorized && !b.Config.Security.PublicMode {
 		SendTextResponse(ctx, "Not authorized to upload.", fasthttp.StatusUnauthorized)
 		return
 	}
@@ -83,7 +82,7 @@ func (b *BaseHandler) ServeUpload(ctx *fasthttp.RequestCtx) {
 		SendTextResponse(ctx, "File name should not exceed 256 characters.", fasthttp.StatusBadRequest)
 		return
 	}
-	if os.Getenv(DisableFileBlacklist) == "0" {
+	if !b.Config.Security.DisableFileBlacklist {
 		fileBlacklist := []string{".exe", ".com", ".dll", ".vbs", ".html", ".mhtml", ".xls", ".doc", ".xlsx", ".sh", ".bat", ".zsh", ""}
 		for _, t := range fileBlacklist {
 			if path.Ext(f.Filename) == t {
@@ -106,7 +105,7 @@ func (b *BaseHandler) ServeUpload(ctx *fasthttp.RequestCtx) {
 	writerCtx, cancel := context.WithTimeout(context.Background(), time.Minute * 5)
 	defer cancel()
 
-	wc := b.GCSClient.Bucket(os.Getenv(GCSBucketName)).Object(fileName).Key(b.Key).NewWriter(writerCtx)
+	wc := b.GCSClient.Bucket(b.Config.Net.GCS.BucketName).Object(fileName).Key(b.Key).NewWriter(writerCtx)
 	defer wc.Close()
 
 	hasher := sha256.New()

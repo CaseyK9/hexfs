@@ -5,7 +5,6 @@
 
 Do-it-yourself modern file host software, written in Golang. An excellent, efficient, and sleek alternative to JavaScript uploaders.
 
-
 ### What can you use it for?
 
 - Your screenshots from ShareX or MagicCap
@@ -25,18 +24,18 @@ Do-it-yourself modern file host software, written in Golang. An excellent, effic
 
 ### Some key notes
 
-- OK so basically you need a lot of shit like MongoDB, Redis, GCS IAM service account key, NGINX setup, firewall configuration, etc.
 - hexFS cannot download files on your behalf from the Internet. This is deliberately a security decision.
 - hexFS will run completely fine if not containerized, but it's still *recommended*! You could use tmux or systemd to run it. Just throwing out ideas.
 - There are no fancy plugins or extensions, or frontend template for that matter. Make them yourself.
 
-### How to run
+### Run
 
-To get the GCS key in as well as the favicon, you'll need to use a bind mount. Also make sure to bind hexFS port (3030) to other ports on your system. Here's an example of how you would run it, after building the image.
+- Put your key in conf/ as "key.json"
+- Put your config in conf/ as "config.yml" using "conf/example.yml" as a reference
 
-`/where/you/store/everything/locally` should contain your key and favicon image if you have one. You can also move your .env here if you want.
+Make sure to bind hexFS port (3030) to other ports on your system. Here's an example of how you would run it, after building the image.
 
-`sudo docker container run -d -p 127.0.0.1:3030:3030 -v /where/you/store/everything/locally:/mnt/hexfs --name hexfs --env-file .env hexfs`
+`sudo docker container run -d -p 127.0.0.1:3030:3030 --name hexfs hexfs`
 
 ### Support
 

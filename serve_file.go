@@ -10,7 +10,6 @@ import (
 	"github.com/valyala/fasthttp"
 	"github.com/vysiondev/httputils/net"
 	"io"
-	"os"
 	"path"
 	"regexp"
 	"strconv"
@@ -38,7 +37,7 @@ var (
 func (b *BaseHandler) ServeFile(ctx *fasthttp.RequestCtx) {
 	id := ctx.Request.URI().LastPathSegment()
 	if len(id) == 0 {
-		ServeNotFound(ctx)
+		b.ServeNotFound(ctx)
 		return
 	}
 	ext := path.Ext(string(id))
@@ -56,10 +55,10 @@ func (b *BaseHandler) ServeFile(ctx *fasthttp.RequestCtx) {
 	fileCtx, cancel := context.WithTimeout(context.Background(), time.Minute * 10)
 	defer cancel()
 
-	wc, e := b.GCSClient.Bucket(os.Getenv(GCSBucketName)).Object(f.ID + f.Ext).Key(b.Key).NewReader(fileCtx)
+	wc, e := b.GCSClient.Bucket(b.Config.Net.GCS.BucketName).Object(f.ID + f.Ext).Key(b.Key).NewReader(fileCtx)
 	if e != nil {
 		if e == storage.ErrObjectNotExist {
-			ServeNotFound(ctx)
+			b.ServeNotFound(ctx)
 			return
 		}
 		SendTextResponse(ctx, "There was a problem reading the file. " + e.Error(), fasthttp.StatusInternalServerError)
@@ -69,7 +68,7 @@ func (b *BaseHandler) ServeFile(ctx *fasthttp.RequestCtx) {
 
 	if discordBotRegex.Match(ctx.Request.Header.UserAgent()) && !ctx.QueryArgs().Has(rawParam) {
 		if wc.Attrs.ContentType == "image/png" || wc.Attrs.ContentType == "image/jpeg" || wc.Attrs.ContentType == "image/gif" || wc.Attrs.ContentType == "image/apng" {
-			ctx.Response.Header.SetContentType("text/html; charset=utf8")
+			//ctx.Response.Header.SetContentType("text/html; charset=utf8")
 			ctx.Response.Header.Add("Cache-Control", "no-cache, no-store, must-revalidate")
 			ctx.Response.Header.Add("Pragma", "no-cache")
 			ctx.Response.Header.Add("Expires", "0")
@@ -79,9 +78,8 @@ func (b *BaseHandler) ServeFile(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	ctx.Response.Header.Add("Content-Disposition", "inline")
-	ctx.Response.Header.Add("Content-Length", strconv.FormatInt(wc.Attrs.Size, 10))
-	ctx.Response.Header.Add("Content-Type", wc.Attrs.ContentType)
+	ctx.Response.Header.Set("Content-Length", strconv.FormatInt(wc.Attrs.Size, 10))
+	ctx.Response.Header.Set("Content-Type", wc.Attrs.ContentType)
 	_, copyErr := io.Copy(ctx.Response.BodyWriter(), wc)
 	if copyErr != nil {
 		SendTextResponse(ctx, "Could not write file to client. " + copyErr.Error(), fasthttp.StatusInternalServerError)

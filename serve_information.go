@@ -24,7 +24,7 @@ func (b *BaseHandler) ServeInformation(ctx *fasthttp.RequestCtx) {
 		return
 	}
 	// Redact IP if not using the master key.
-	if GetAuthorizationLevel(ctx.Request.Header.Peek("Authorization")) != IsMasterKey {
+	if b.GetAuthorizationLevel(ctx.Request.Header.Peek("Authorization")) != IsMasterKey {
 		d.IP = ""
 	}
 	SendJSONResponse(ctx, d)

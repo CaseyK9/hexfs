@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/valyala/fasthttp"
-	"os"
 )
 
 const (
@@ -12,18 +11,18 @@ const (
 )
 
 func (b *BaseHandler) IsAuthorized(ctx *fasthttp.RequestCtx) bool {
-	if GetAuthorizationLevel(ctx.Request.Header.Peek("authorization")) != IsMasterKey {
+	if b.GetAuthorizationLevel(ctx.Request.Header.Peek("authorization")) != IsMasterKey {
 		SendTextResponse(ctx, "Not authorized.", fasthttp.StatusUnauthorized)
 		return false
 	}
 	return true
 }
 
-func GetAuthorizationLevel(test []byte) int {
+func (b *BaseHandler)GetAuthorizationLevel(test []byte) int {
 	switch string(test) {
-	case os.Getenv(MasterKey):
+	case b.Config.Security.MasterKey:
 		return IsMasterKey
-	case os.Getenv(StandardKey):
+	case b.Config.Security.StandardKey:
 		return IsStandardKey
 	default:
 		return NotAuthorized

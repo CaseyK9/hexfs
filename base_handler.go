@@ -6,8 +6,6 @@ import (
 	"github.com/go-redis/redis/v8"
 	"go.mongodb.org/mongo-driver/mongo"
 	"log"
-	"os"
-	"strconv"
 )
 
 type BaseHandler struct {
@@ -15,24 +13,20 @@ type BaseHandler struct {
 	GCSClient *storage.Client
 	RedisClient *redis.Client
 	Key []byte
-	MaxSizeBytes int64
+	Config Configuration
 }
 
-func NewBaseHandler(db *mongo.Database, gcsClient *storage.Client, redisClient *redis.Client) *BaseHandler {
-	k, e := base64.StdEncoding.DecodeString(os.Getenv(GCSSecretKey))
+func NewBaseHandler(db *mongo.Database, gcsClient *storage.Client, redisClient *redis.Client, c Configuration) *BaseHandler {
+	k, e := base64.StdEncoding.DecodeString(c.Net.GCS.SecretKey)
 	if e != nil {
 		log.Fatal("Key not properly formatted to Base64.")
-	}
-	i, e := strconv.ParseInt(os.Getenv(MaxSizeBytes), 0, 64)
-	if e != nil {
-		log.Fatal("Cannot parse the max size in bytes for a file.")
 	}
 
 	return &BaseHandler{
 		Database: db,
 		GCSClient: gcsClient,
 		Key: k,
-		MaxSizeBytes: i,
 		RedisClient: redisClient,
+		Config: c,
 	}
 }

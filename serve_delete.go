@@ -4,7 +4,6 @@ import (
 	"cloud.google.com/go/storage"
 	"context"
 	"github.com/valyala/fasthttp"
-	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -32,7 +31,7 @@ func (b *BaseHandler) DeleteFiles(filter *FileData) (int64, error) {
 			return 0, err
 
 		}
-		e := b.GCSClient.Bucket(os.Getenv(GCSBucketName)).Object(result.ID + result.Ext).Delete(ctx)
+		e := b.GCSClient.Bucket(b.Config.Net.GCS.BucketName).Object(result.ID + result.Ext).Delete(ctx)
 		if e != nil {
 			// If object is not found, who cares, move on (might have been manually deleted from GCS?)
 			if e != storage.ErrObjectNotExist {

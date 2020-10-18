@@ -5,8 +5,8 @@ import (
 )
 
 // ServeCheckAuth validates either the standard or master key.
-func ServeCheckAuth(ctx *fasthttp.RequestCtx) {
-	if GetAuthorizationLevel(ctx.Request.Header.Peek("Authorization")) == NotAuthorized {
+func (b *BaseHandler)ServeCheckAuth(ctx *fasthttp.RequestCtx) {
+	if b.GetAuthorizationLevel(ctx.Request.Header.Peek("Authorization")) == NotAuthorized {
 		SendTextResponse(ctx, "Not authorized.", fasthttp.StatusUnauthorized)
 		return
 	}

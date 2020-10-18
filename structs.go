@@ -9,3 +9,45 @@ type FileData struct {
 	IP string `json:"ip,omitempty" bson:"ip,omitempty"`
 	Size int64 `json:"size,omitempty" bson:"size,omitempty"`
 }
+
+type Configuration struct {
+	Security SecurityConfig
+	Server ServerConfig
+	Net NetConfig
+}
+
+type SecurityConfig struct {
+	MasterKey string
+	StandardKey string
+	DisableFileBlacklist bool
+	MaxSizeBytes int
+	Capacity int64
+	PublicMode bool
+}
+
+type ServerConfig struct {
+	Port string
+	Frontend string
+}
+
+type NetConfig struct {
+	Mongo MongoConfig
+	Redis RedisConfig
+	GCS GCSConfig
+}
+
+type MongoConfig struct {
+	URI string
+	Database string
+}
+
+type RedisConfig struct {
+	URI string
+	Password string
+	Db int
+}
+
+type GCSConfig struct {
+	BucketName string
+	SecretKey string
+}

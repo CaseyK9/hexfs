@@ -4,3 +4,5 @@
 uploads/*
 *.sqlite
 *.db
+*.yml
+!example.yml
