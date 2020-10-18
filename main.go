@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	Version = "1.9.0"
+	Version = "1.9.1"
 	MongoCollectionFiles = "files"
 	Gibibyte = 1073741824
 	RedisKeyMaxCapacity = "maxcapacity"
@@ -68,7 +68,7 @@ func main() {
 	//////////////////////////////////
 	// Connect to MongoDB
 	///////////////////////////////////
-	hlog.Log("mongodb", hlog.LevelInfo, "Establishing MongoDB connection to database \"" + configuration.Net.Mongo.URI + "\"")
+	hlog.Log("mongodb", hlog.LevelInfo, "Establishing MongoDB connection")
 	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(configuration.Net.Mongo.URI))
 	if err != nil {
 		log.Fatal("Could not instantiate MongoDB client: " + err.Error())
@@ -101,62 +101,45 @@ func main() {
 	hlog.Log("redis", hlog.LevelSuccess, "Ping successful.")
 
 	//////////////////////////////////
-	// Check if max capacity size already set
+	// Set max capacity
 	///////////////////////////////////
-	res, err := redisClient.Get(ctx, RedisKeyMaxCapacity).Result()
-	if err == redis.Nil {
-		hlog.Log("capacity", hlog.LevelInfo, fmt.Sprintf("Max capacity will be set to %d GiB because it was not set", configuration.Security.Capacity))
-
-		err = redisClient.Set(ctx, RedisKeyMaxCapacity, configuration.Security.Capacity * Gibibyte, 0).Err()
-		if err != nil {
-			log.Fatal("⬡ Failed to set max capacity in Redis database: " + err.Error())
-		}
-	} else if err != nil {
-		log.Fatal("⬡ Failed to get max capacity in Redis database: " + err.Error())
-	} else {
-		hlog.Log("capacity", hlog.LevelInfo, fmt.Sprintf("Max capacity already set to %s bytes, not changing", res))
+	err = redisClient.Set(ctx, RedisKeyMaxCapacity, configuration.Security.Capacity * Gibibyte, 0).Err()
+	if err != nil {
+		log.Fatal("⬡ Failed to set max capacity in Redis database: " + err.Error())
 	}
 
 	//////////////////////////////////
-	// Check if current capacity size already set
+	// Set current capacity
 	///////////////////////////////////
-	res, err = redisClient.Get(ctx, RedisKeyCurrentCapacity).Result()
-	if err == redis.Nil {
-		hlog.Log("capacity", hlog.LevelInfo, "Setting current capacity because it was not set before")
-		hlog.Log("capacity", hlog.LevelInfo, "Aggregating current capacity from data base (this may take a while...)")
-		aggCtx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
-		defer cancel()
+	hlog.Log("capacity", hlog.LevelInfo, "Aggregating current capacity from data base (this may take a while...)")
+	aggCtx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	defer cancel()
 
-		op1 := bson.D{
-			{"$group", bson.D{
-				{"_id", nil},
-				{"total", bson.D{
-					{"$sum", "$size"},
-				}},
+	op1 := bson.D{
+		{"$group", bson.D{
+			{"_id", nil},
+			{"total", bson.D{
+				{"$sum", "$size"},
 			}},
-		}
-		opList := []bson.D{op1}
-		cursor, err := mongoClient.Database(configuration.Net.Mongo.Database).Collection(MongoCollectionFiles).Aggregate(aggCtx, opList)
+		}},
+	}
+	opList := []bson.D{op1}
+	cursor, err := mongoClient.Database(configuration.Net.Mongo.Database).Collection(MongoCollectionFiles).Aggregate(aggCtx, opList)
+	if err != nil {
+		log.Fatal("⬡ Failed to iterate: " + err.Error())
+	}
+	defer cursor.Close(aggCtx)
+	var results []bson.M
+	if err = cursor.All(aggCtx, &results); err != nil {
+		log.Fatal(err)
+	}
+	for _, result := range results {
+		err = redisClient.Set(ctx, RedisKeyCurrentCapacity, result["total"], 0).Err()
 		if err != nil {
-			log.Fatal("⬡ Failed to iterate: " + err.Error())
+			log.Fatal("⬡ Failed to set current capacity in Redis database: " + err.Error())
 		}
-		defer cursor.Close(aggCtx)
-		var results []bson.M
-		if err = cursor.All(aggCtx, &results); err != nil {
-			log.Fatal(err)
-		}
-		for _, result := range results {
-			err = redisClient.Set(ctx, RedisKeyCurrentCapacity, result["total"], 0).Err()
-			if err != nil {
-				log.Fatal("⬡ Failed to set current capacity in Redis database: " + err.Error())
-			}
-			hlog.Log("capacity", hlog.LevelSuccess, "Finished aggregation.")
-			break
-		}
-	} else if err != nil {
-		log.Fatal("⬡ Failed to get current capacity in Redis database: " + err.Error())
-	} else {
-		hlog.Log("capacity", hlog.LevelInfo, fmt.Sprintf("Current capacity already set to %s bytes, not changing", res))
+		hlog.Log("capacity", hlog.LevelSuccess, "Finished aggregation.")
+		break
 	}
 
 	//////////////////////////////////
