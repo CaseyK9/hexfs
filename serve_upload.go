@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -102,10 +101,7 @@ func (b *BaseHandler) ServeUpload(ctx *fasthttp.RequestCtx) {
 	fileId := <- randomStringChan
 	fileName := fileId + path.Ext(f.Filename)
 
-	writerCtx, cancel := context.WithTimeout(context.Background(), time.Minute * 5)
-	defer cancel()
-
-	wc := b.GCSClient.Bucket(b.Config.Net.GCS.BucketName).Object(fileName).Key(b.Key).NewWriter(writerCtx)
+	wc := b.GCSClient.Bucket(b.Config.Net.GCS.BucketName).Object(fileName).Key(b.Key).NewWriter(ctx)
 	defer wc.Close()
 
 	hasher := sha256.New()
@@ -123,10 +119,7 @@ func (b *BaseHandler) ServeUpload(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	dbCtx, cancel := context.WithTimeout(context.Background(), time.Second * 30)
-	defer cancel()
-
-	_, e = b.Database.Collection(MongoCollectionFiles).InsertOne(dbCtx, &FileData{
+	_, e = b.Database.Collection(MongoCollectionFiles).InsertOne(ctx, &FileData{
 		ID:                fileId,
 		Ext:               path.Ext(f.Filename),
 		SHA256:            hex.EncodeToString(hasher.Sum(nil)),
@@ -137,14 +130,14 @@ func (b *BaseHandler) ServeUpload(ctx *fasthttp.RequestCtx) {
 
 	if e != nil {
 		SendTextResponse(ctx, "Failed to insert new document. " + e.Error(), fasthttp.StatusInternalServerError)
-		_, e := b.DeleteFiles(&FileData{ID:fileId})
+		_, _, e := b.DeleteFiles(ctx, &FileData{ID:fileId})
 		if e != nil {
 			SendTextResponse(ctx, "Failed to delete file after failing to insert document. " + e.Error(), fasthttp.StatusInternalServerError)
 		}
 		return
 	}
 
-	e = b.RedisClient.Set(dbCtx, RedisKeyCurrentCapacity, currentCapParse + f.Size, 0).Err()
+	e = b.RedisClient.Set(ctx, RedisKeyCurrentCapacity, currentCapParse + f.Size, 0).Err()
 	if e != nil {
 		SendTextResponse(ctx, "Failed to update capacity. " + e.Error(), fasthttp.StatusInternalServerError)
 	}

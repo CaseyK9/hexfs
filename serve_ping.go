@@ -11,4 +11,3 @@ func (b *BaseHandler)ServePing(ctx *fasthttp.RequestCtx) {
 	}
 	SendTextResponse(ctx, resText, fasthttp.StatusOK)
 }
-

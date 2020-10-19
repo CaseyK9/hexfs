@@ -14,7 +14,7 @@ func (b *BaseHandler) ServeInformation(ctx *fasthttp.RequestCtx) {
 	}
 	ext := path.Ext(string(id))
 
-	d, err := b.GetFileData(FileData{ID: strings.TrimSuffix(string(id), ext), Ext: ext })
+	d, err := b.GetFileData(ctx, FileData{ID: strings.TrimSuffix(string(id), ext), Ext: ext })
 	if err != nil {
 		SendTextResponse(ctx, "Failed to fetch information. " + err.Error(), fasthttp.StatusInternalServerError)
 		return

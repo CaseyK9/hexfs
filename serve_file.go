@@ -5,7 +5,6 @@ package main
 
 import (
 	"cloud.google.com/go/storage"
-	"context"
 	"fmt"
 	"github.com/valyala/fasthttp"
 	"github.com/vysiondev/httputils/net"
@@ -14,7 +13,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 )
 
 const rawParam = "raw"
@@ -42,7 +40,7 @@ func (b *BaseHandler) ServeFile(ctx *fasthttp.RequestCtx) {
 	}
 	ext := path.Ext(string(id))
 
-	f, e := b.GetFileData(FileData{ID: strings.TrimSuffix(string(id), ext), Ext: ext })
+	f, e := b.GetFileData(ctx, FileData{ID: strings.TrimSuffix(string(id), ext), Ext: ext })
 	if e != nil {
 		SendTextResponse(ctx, "Failed to get file information. " + e.Error(), fasthttp.StatusInternalServerError)
 		return
@@ -52,10 +50,7 @@ func (b *BaseHandler) ServeFile(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	fileCtx, cancel := context.WithTimeout(context.Background(), time.Minute * 10)
-	defer cancel()
-
-	wc, e := b.GCSClient.Bucket(b.Config.Net.GCS.BucketName).Object(f.ID + f.Ext).Key(b.Key).NewReader(fileCtx)
+	wc, e := b.GCSClient.Bucket(b.Config.Net.GCS.BucketName).Object(f.ID + f.Ext).Key(b.Key).NewReader(ctx)
 	if e != nil {
 		if e == storage.ErrObjectNotExist {
 			b.ServeNotFound(ctx)

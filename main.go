@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	Version = "1.9.1"
+	Version = "1.9.2"
 	MongoCollectionFiles = "files"
 	Gibibyte = 1073741824
 	RedisKeyMaxCapacity = "maxcapacity"
@@ -48,7 +48,7 @@ func main() {
 	viper.SetDefault("server.port", "3030")
 	viper.SetDefault("net.redis.db", 0)
 	viper.SetDefault("security.maxsizebytes", 52428800)
-	viper.SetDefault("security.capacity", 5 * Gibibyte)
+	viper.SetDefault("security.capacity", 10 * Gibibyte)
 	viper.SetDefault("security.disablefileblacklist", false)
 	viper.SetDefault("security.publicmode", false)
 
@@ -62,7 +62,7 @@ func main() {
 	//////////////////////////////////
 	// Setup context
 	///////////////////////////////////
-	ctx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
 	defer cancel()
 
 	//////////////////////////////////
@@ -112,8 +112,6 @@ func main() {
 	// Set current capacity
 	///////////////////////////////////
 	hlog.Log("capacity", hlog.LevelInfo, "Aggregating current capacity from data base (this may take a while...)")
-	aggCtx, cancel := context.WithTimeout(context.Background(), 10 * time.Second)
-	defer cancel()
 
 	op1 := bson.D{
 		{"$group", bson.D{
@@ -124,13 +122,13 @@ func main() {
 		}},
 	}
 	opList := []bson.D{op1}
-	cursor, err := mongoClient.Database(configuration.Net.Mongo.Database).Collection(MongoCollectionFiles).Aggregate(aggCtx, opList)
+	cursor, err := mongoClient.Database(configuration.Net.Mongo.Database).Collection(MongoCollectionFiles).Aggregate(ctx, opList)
 	if err != nil {
 		log.Fatal("⬡ Failed to iterate: " + err.Error())
 	}
-	defer cursor.Close(aggCtx)
+	defer cursor.Close(ctx)
 	var results []bson.M
-	if err = cursor.All(aggCtx, &results); err != nil {
+	if err = cursor.All(ctx, &results); err != nil {
 		log.Fatal(err)
 	}
 	for _, result := range results {
