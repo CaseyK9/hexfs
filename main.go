@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	Version = "1.9.2"
+	Version = "1.9.3"
 	MongoCollectionFiles = "files"
 	Gibibyte = 1073741824
 	RedisKeyMaxCapacity = "maxcapacity"
@@ -79,6 +79,11 @@ func main() {
 		log.Fatal("Could not ping MongoDB database: " + e.Error())
 	}
 	hlog.Log("mongodb", hlog.LevelSuccess, "Ping successful.")
+	defer func() {
+		if dbErr := mongoClient.Disconnect(ctx); dbErr != nil {
+			fmt.Println("Disconnect error: " + dbErr.Error())
+		}
+	}()
 
 	//////////////////////////////////
 	// Instantiate Redis
@@ -86,8 +91,8 @@ func main() {
 	hlog.Log("redis", hlog.LevelInfo, "Establishing Redis connection.")
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     configuration.Net.Redis.URI,
-		Password: configuration.Net.Redis.Password, // no password set
-		DB:       configuration.Net.Redis.Db,  // use default DB
+		Password: configuration.Net.Redis.Password,
+		DB:       configuration.Net.Redis.Db, 
 	})
 
 	//////////////////////////////////

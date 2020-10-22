@@ -1,23 +1,34 @@
 security:
+  # ALL permissions. KEEP THIS PRIVATE!
   masterkey:
+  # You can share this key with your friends (no delete permissions)
   standardkey:
-  disablefileblacklist:
+  # Disables the builtin file extension blacklist
+  disablefileblacklist: false
+  # Max size (in bytes) a file can be
   maxsizebytes: 52428800
+  # Max size that your GCS bucket can get (in GiB, or Gibibytes)
   capacity: 5
+  # Standard key not required to upload if this is true.
   publicmode: false
 
 server:
+  # What port to listen on. Default is 3030
   port:
+  # Users who encounter 404 will get redirected here
   frontend: http://your-website.com
 
 net:
   mongo:
+    # Full MongoDB connection URI (mongodb://)
     uri:
+    # Database name to use
     database:
   redis:
     uri:
     password:
     db: 0
   gcs:
+    # AES-256 Base64 encoded key
     secretkey:
     bucketname:
