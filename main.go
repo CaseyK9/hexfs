@@ -8,21 +8,14 @@ import (
 	"github.com/spf13/viper"
 	"github.com/valyala/fasthttp"
 	"github.com/vysiondev/hexfs/hlog"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"google.golang.org/api/option"
 	"log"
 	"time"
 )
 
 const (
-	Version = "1.9.3"
-	MongoCollectionFiles = "files"
+	Version = "1.10"
 	Gibibyte = 1073741824
-	RedisKeyMaxCapacity = "maxcapacity"
-	RedisKeyCurrentCapacity = "currentcapacity"
 	GCSKeyLoc = "./conf/key.json"
 )
 
@@ -30,9 +23,6 @@ func main() {
 	fmt.Println("Welcome to hexfs")
 	fmt.Print("You are running version " + Version + "\n\n")
 
-	//////////////////////////////////
-	// Setup env
-	///////////////////////////////////
 	hlog.Log("env", hlog.LevelInfo, "Setting up env")
 	viper.SetConfigName("config")
 	viper.AddConfigPath("./conf/")
@@ -47,43 +37,21 @@ func main() {
 	// Set undefined variables
 	viper.SetDefault("server.port", "3030")
 	viper.SetDefault("net.redis.db", 0)
+	viper.SetDefault("server.idlen", 5)
 	viper.SetDefault("security.maxsizebytes", 52428800)
 	viper.SetDefault("security.capacity", 10 * Gibibyte)
-	viper.SetDefault("security.disablefileblacklist", false)
 	viper.SetDefault("security.publicmode", false)
 
 	err := viper.Unmarshal(&configuration)
 	if err != nil {
 		log.Fatalf("Unable to decode into struct, %v", err)
 	}
-	if len(configuration.Security.StandardKey) == 0 || len(configuration.Security.MasterKey) == 0 {
-		log.Fatal("STOP! At the very minimum, you must set the standard and master keys in the environment. These were not set, so the program terminated for your safety.")
+	if len(configuration.Security.MasterKey) == 0 {
+		log.Fatal("STOP! At the very minimum, you must set master key in the environment. These were not set, so the program terminated for your safety.")
 	}
-	//////////////////////////////////
-	// Setup context
-	///////////////////////////////////
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
 	defer cancel()
-
-	//////////////////////////////////
-	// Connect to MongoDB
-	///////////////////////////////////
-	hlog.Log("mongodb", hlog.LevelInfo, "Establishing MongoDB connection")
-	mongoClient, err := mongo.Connect(ctx, options.Client().ApplyURI(configuration.Net.Mongo.URI))
-	if err != nil {
-		log.Fatal("Could not instantiate MongoDB client: " + err.Error())
-	}
-	hlog.Log("mongodb", hlog.LevelSuccess, "Connection established. Pinging instance")
-	e := mongoClient.Ping(ctx, readpref.Primary())
-	if e != nil {
-		log.Fatal("Could not ping MongoDB database: " + e.Error())
-	}
-	hlog.Log("mongodb", hlog.LevelSuccess, "Ping successful.")
-	defer func() {
-		if dbErr := mongoClient.Disconnect(ctx); dbErr != nil {
-			fmt.Println("Disconnect error: " + dbErr.Error())
-		}
-	}()
 
 	//////////////////////////////////
 	// Instantiate Redis
@@ -106,46 +74,6 @@ func main() {
 	hlog.Log("redis", hlog.LevelSuccess, "Ping successful.")
 
 	//////////////////////////////////
-	// Set max capacity
-	///////////////////////////////////
-	err = redisClient.Set(ctx, RedisKeyMaxCapacity, configuration.Security.Capacity * Gibibyte, 0).Err()
-	if err != nil {
-		log.Fatal("⬡ Failed to set max capacity in Redis database: " + err.Error())
-	}
-
-	//////////////////////////////////
-	// Set current capacity
-	///////////////////////////////////
-	hlog.Log("capacity", hlog.LevelInfo, "Aggregating current capacity from data base (this may take a while...)")
-
-	op1 := bson.D{
-		{"$group", bson.D{
-			{"_id", nil},
-			{"total", bson.D{
-				{"$sum", "$size"},
-			}},
-		}},
-	}
-	opList := []bson.D{op1}
-	cursor, err := mongoClient.Database(configuration.Net.Mongo.Database).Collection(MongoCollectionFiles).Aggregate(ctx, opList)
-	if err != nil {
-		log.Fatal("⬡ Failed to iterate: " + err.Error())
-	}
-	defer cursor.Close(ctx)
-	var results []bson.M
-	if err = cursor.All(ctx, &results); err != nil {
-		log.Fatal(err)
-	}
-	for _, result := range results {
-		err = redisClient.Set(ctx, RedisKeyCurrentCapacity, result["total"], 0).Err()
-		if err != nil {
-			log.Fatal("⬡ Failed to set current capacity in Redis database: " + err.Error())
-		}
-		hlog.Log("capacity", hlog.LevelSuccess, "Finished aggregation.")
-		break
-	}
-
-	//////////////////////////////////
 	// Connect to Google Cloud Storage
 	///////////////////////////////////
 	hlog.Log("gcs", hlog.LevelInfo, "Establishing Google Cloud Storage client with key file")
@@ -154,22 +82,22 @@ func main() {
 		log.Fatal("Could not instantiate storage client: " + err.Error())
 	}
 	defer c.Close()
-	b := NewBaseHandler(mongoClient.Database(configuration.Net.Mongo.Database), c, redisClient, configuration)
+	b := NewBaseHandler(c, redisClient, configuration)
 
 	//////////////////////////////////
 	// Start HTTP server
 	///////////////////////////////////
 	s := &fasthttp.Server{
-		Handler:                            b.limit(handleCORS(b.handleHTTPRequest)),
-		ErrorHandler:                       nil,
+		Handler:                       b.limit(handleCORS(b.handleHTTPRequest)),
+		ErrorHandler:                  nil,
 		HeaderReceived:                nil,
 		ContinueHandler:               nil,
 		Name:                          "hexfs v" + Version,
 		Concurrency:                   128 * 4,
 		DisableKeepalive:              false,
-		ReadTimeout:                   20 * time.Minute,
-		WriteTimeout:                  20 * time.Minute,
-		MaxConnsPerIP:                 256,
+		ReadTimeout:                   30 * time.Minute,
+		WriteTimeout:                  30 * time.Minute,
+		MaxConnsPerIP:                 32,
 		TCPKeepalive:                  false,
 		TCPKeepalivePeriod:            0,
 		MaxRequestBodySize:            configuration.Security.MaxSizeBytes + 1024,
