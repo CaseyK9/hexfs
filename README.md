@@ -3,9 +3,11 @@
 
 [![hlogo.png](https://i.postimg.cc/qRz0Bh9M/hlogo.png)](https://postimg.cc/CBT9m1hW)
 
-# hexFS - File Host Software  
-  
-  An excellent, efficient hub for storing files.
+<a href="https://codeclimate.com/github/vysiondev/hexfs/maintainability"><img src="https://api.codeclimate.com/v1/badges/4dd903ec7420f1d080b6/maintainability" /></a>
+
+# hexFS
+
+A lightweight, speedy file host intended for privte use (but you can make it open if you want). Good with ShareX/MagicCap.
   
 ### Features
   
