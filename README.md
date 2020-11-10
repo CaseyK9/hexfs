@@ -1,7 +1,7 @@
 
   
 
-<img src="https://i.postimg.cc/YSXZmBDk/logo-Artboard-1-0-4x.png">
+[![hlogo.png](https://i.postimg.cc/qRz0Bh9M/hlogo.png)](https://postimg.cc/CBT9m1hW)
 
 # hexFS - File Host Software  
   
