@@ -44,23 +44,11 @@ func (b *BaseHandler) handleHTTPRequest(ctx *fasthttp.RequestCtx) {
 	case "/favicon.ico":
 		ServeFavicon(ctx)
 		break
-	case "/file/delete":
-		if !b.IsAuthorized(ctx) {
-			return
-		}
-		fasthttp.TimeoutHandler(b.ServeDelete, time.Minute * 5, "Deleting files timed out")(ctx)
-		break
-	case "/file/info":
-		fasthttp.TimeoutHandler(b.ServeInformation, time.Second * 15, "File into retrieval timed out")(ctx)
-		break
 	case "/auth/check":
 		b.ServeCheckAuth(ctx)
 		break
 	case "/server/ping":
 		b.ServePing(ctx)
-		break
-	case "/server/capacity":
-		fasthttp.TimeoutHandler(b.ServeCapacity, time.Second * 15, "Capacity check timed out")(ctx)
 		break
 	default:
 		if !ctx.IsGet() {

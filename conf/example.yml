@@ -1,15 +1,30 @@
 security:
-  # ALL permissions. KEEP THIS PRIVATE!
+  # The key to upload.
   masterkey:
-  # You can share this key with your friends (no delete permissions)
-  standardkey:
-  # Disables the builtin file extension blacklist
-  disablefileblacklist: false
-  # Max size (in bytes) a file can be
+  # Set the extension blacklist. If an extension is also in the whitelist, it will still be blacklisted.
+  # If this is not set, there will be no blacklist.
+  blacklist:
+    - exe
+    - sh
+    - doc
+    - docx
+    - html
+    - mhtml
+    -
+  # Set the extension whitelist.
+  # If this is not set, there will be no whitelist.
+  whitelist:
+    - png
+    - jpeg
+    - gif
+    - mp3
+    - mp4
+    - jpg
+    - apng
+    - mov
+  # Max size (in bytes) a file can be. This is 50 MiB
   maxsizebytes: 52428800
-  # Max size that your GCS bucket can get (in GiB, or Gibibytes)
-  capacity: 5
-  # Standard key not required to upload if this is true.
+  # Key not required to upload if this is true.
   publicmode: false
 
 server:
@@ -17,6 +32,8 @@ server:
   port:
   # Users who encounter 404 will get redirected here
   frontend: http://your-website.com
+  # ID length to use. (e.g: xxxxx.png has an ID length of 5)
+  idlen: 5
 
 net:
   mongo:

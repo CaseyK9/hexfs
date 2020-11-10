@@ -9,7 +9,6 @@ import (
 	"github.com/valyala/fasthttp"
 	"github.com/vysiondev/httputils/net"
 	"io"
-	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -38,19 +37,8 @@ func (b *BaseHandler) ServeFile(ctx *fasthttp.RequestCtx) {
 		b.ServeNotFound(ctx)
 		return
 	}
-	ext := path.Ext(string(id))
 
-	f, e := b.GetFileData(ctx, FileData{ID: strings.TrimSuffix(string(id), ext), Ext: ext })
-	if e != nil {
-		SendTextResponse(ctx, "Failed to get file information. " + e.Error(), fasthttp.StatusInternalServerError)
-		return
-	}
-	if f == nil {
-		SendTextResponse(ctx, "Not found.", fasthttp.StatusNotFound)
-		return
-	}
-
-	wc, e := b.GCSClient.Bucket(b.Config.Net.GCS.BucketName).Object(f.ID + f.Ext).Key(b.Key).NewReader(ctx)
+	wc, e := b.GCSClient.Bucket(b.Config.Net.GCS.BucketName).Object(string(id)).Key(b.Key).NewReader(ctx)
 	if e != nil {
 		if e == storage.ErrObjectNotExist {
 			b.ServeNotFound(ctx)
@@ -68,7 +56,7 @@ func (b *BaseHandler) ServeFile(ctx *fasthttp.RequestCtx) {
 			ctx.Response.Header.Add("Pragma", "no-cache")
 			ctx.Response.Header.Add("Expires", "0")
 		}
-		url := fmt.Sprintf("%s/%s?%s=true", net.GetRoot(ctx), f.ID + f.Ext, rawParam)
+		url := fmt.Sprintf("%s/%s?%s=true", net.GetRoot(ctx), id, rawParam)
 		_, _ = fmt.Fprint(ctx.Response.BodyWriter(), strings.Replace(discordHTML, "{{.}}", url, 1))
 		return
 	}
