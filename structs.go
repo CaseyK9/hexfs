@@ -17,7 +17,6 @@ type SecurityConfig struct {
 
 type ServerConfig struct {
 	Port string
-	Frontend string
 	IDLen int
 }
 

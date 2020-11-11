@@ -10,7 +10,6 @@ security:
     - docx
     - html
     - mhtml
-    -
   # Set the extension whitelist.
   # If this is not set, there will be no whitelist.
   whitelist:
@@ -30,8 +29,6 @@ security:
 server:
   # What port to listen on. Default is 3030
   port:
-  # Users who encounter 404 will get redirected here
-  frontend: http://your-website.com
   # ID length to use. (e.g: xxxxx.png has an ID length of 5)
   idlen: 5
 

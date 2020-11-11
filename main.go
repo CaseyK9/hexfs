@@ -14,8 +14,7 @@ import (
 )
 
 const (
-	Version = "1.10"
-	Gibibyte = 1073741824
+	Version = "1.10.1"
 	GCSKeyLoc = "./conf/key.json"
 )
 
@@ -39,7 +38,6 @@ func main() {
 	viper.SetDefault("net.redis.db", 0)
 	viper.SetDefault("server.idlen", 5)
 	viper.SetDefault("security.maxsizebytes", 52428800)
-	viper.SetDefault("security.capacity", 10 * Gibibyte)
 	viper.SetDefault("security.publicmode", false)
 
 	err := viper.Unmarshal(&configuration)
@@ -69,7 +67,7 @@ func main() {
 	hlog.Log("redis", hlog.LevelInfo, "Pinging Redis database.")
 	status := redisClient.Ping(ctx).Err()
 	if status != nil {
-		log.Fatal("⬡ Could not ping Redis database: " + status.Error())
+		log.Fatal("Could not ping Redis database: " + status.Error())
 	}
 	hlog.Log("redis", hlog.LevelSuccess, "Ping successful.")
 
@@ -81,7 +79,6 @@ func main() {
 	if err != nil {
 		log.Fatal("Could not instantiate storage client: " + err.Error())
 	}
-	defer c.Close()
 	b := NewBaseHandler(c, redisClient, configuration)
 
 	//////////////////////////////////
@@ -97,7 +94,7 @@ func main() {
 		DisableKeepalive:              false,
 		ReadTimeout:                   30 * time.Minute,
 		WriteTimeout:                  30 * time.Minute,
-		MaxConnsPerIP:                 32,
+		MaxConnsPerIP:                 16,
 		TCPKeepalive:                  false,
 		TCPKeepalivePeriod:            0,
 		MaxRequestBodySize:            configuration.Security.MaxSizeBytes + 1024,
