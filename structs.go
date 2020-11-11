@@ -12,6 +12,7 @@ type SecurityConfig struct {
 	PublicMode bool
 	Blacklist []string
 	Whitelist []string
+	Ratelimit int
 }
 
 type ServerConfig struct {

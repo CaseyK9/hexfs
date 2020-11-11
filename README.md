@@ -15,10 +15,11 @@ A lightweight but fast file host intended for private use (but you can make it o
 - Simple access system - either:  
   - make it private (default),
   - or open to the public.  
-- Final executable is small - only about 16 MB in size.  
+- Final executable is small - only about 20 MB in size.  
 - Custom extension whitelist/blacklists.  
 - Ratelimiting with Redis.  
 - No reliance on a database.  
+- Very fast: 9.2ms to upload a 5MB file and return a response.
 
 ### Run  
   

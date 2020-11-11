@@ -3,26 +3,22 @@ package main
 import (
 	"cloud.google.com/go/storage"
 	"context"
-	"fmt"
 	"github.com/go-redis/redis/v8"
 	"github.com/spf13/viper"
 	"github.com/valyala/fasthttp"
-	"github.com/vysiondev/hexfs/hlog"
 	"google.golang.org/api/option"
 	"log"
 	"time"
 )
 
 const (
-	Version = "1.10.1"
+	Version = "1.10.2"
 	GCSKeyLoc = "./conf/key.json"
 )
 
 func main() {
-	fmt.Println("Welcome to hexfs")
-	fmt.Print("You are running version " + Version + "\n\n")
+	log.Print("hexFS " + Version + "\n\n")
 
-	hlog.Log("env", hlog.LevelInfo, "Setting up env")
 	viper.SetConfigName("config")
 	viper.AddConfigPath("./conf/")
 	viper.AutomaticEnv()
@@ -39,6 +35,7 @@ func main() {
 	viper.SetDefault("server.idlen", 5)
 	viper.SetDefault("security.maxsizebytes", 52428800)
 	viper.SetDefault("security.publicmode", false)
+	viper.SetDefault("security.ratelimit", 2)
 
 	err := viper.Unmarshal(&configuration)
 	if err != nil {
@@ -47,43 +44,32 @@ func main() {
 	if len(configuration.Security.MasterKey) == 0 {
 		log.Fatal("STOP! At the very minimum, you must set master key in the environment. These were not set, so the program terminated for your safety.")
 	}
+	if configuration.Security.PublicMode {
+		log.Println("Public mode is ENABLED. Authentication will not be required to upload!")
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30 * time.Second)
 	defer cancel()
 
-	//////////////////////////////////
-	// Instantiate Redis
-	///////////////////////////////////
-	hlog.Log("redis", hlog.LevelInfo, "Establishing Redis connection.")
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     configuration.Net.Redis.URI,
 		Password: configuration.Net.Redis.Password,
 		DB:       configuration.Net.Redis.Db, 
 	})
 
-	//////////////////////////////////
-	// Ping Redis
-	///////////////////////////////////
-	hlog.Log("redis", hlog.LevelInfo, "Pinging Redis database.")
 	status := redisClient.Ping(ctx).Err()
 	if status != nil {
 		log.Fatal("Could not ping Redis database: " + status.Error())
 	}
-	hlog.Log("redis", hlog.LevelSuccess, "Ping successful.")
+	log.Println("Redis connection established")
 
-	//////////////////////////////////
-	// Connect to Google Cloud Storage
-	///////////////////////////////////
-	hlog.Log("gcs", hlog.LevelInfo, "Establishing Google Cloud Storage client with key file")
 	c, err := storage.NewClient(context.Background(), option.WithCredentialsFile(GCSKeyLoc))
 	if err != nil {
 		log.Fatal("Could not instantiate storage client: " + err.Error())
 	}
+	log.Println("Google Cloud Storage connection established")
 	b := NewBaseHandler(c, redisClient, configuration)
 
-	//////////////////////////////////
-	// Start HTTP server
-	///////////////////////////////////
 	s := &fasthttp.Server{
 		Handler:                       b.limit(handleCORS(b.handleHTTPRequest)),
 		ErrorHandler:                  nil,
@@ -109,7 +95,7 @@ func main() {
 		KeepHijackedConns:             false,
 	}
 
-	hlog.Log("all done", hlog.LevelSuccess, "Start-up complete, server is ready to accept requests at port " + b.Config.Server.Port)
+	log.Println("-> Listening for new requests on port " + b.Config.Server.Port)
 	if err = s.ListenAndServe(":" + b.Config.Server.Port); err != nil {
 		log.Fatalf("Listen error: %s\n", err)
 	}

@@ -25,6 +25,12 @@ security:
   maxsizebytes: 52428800
   # Key not required to upload if this is true.
   publicmode: false
+  # The number of requests that can be made per second.
+  # By default, this is 2 because clients must typically make
+  # an OPTIONS request, then a POST request, allowing for 1 file/second.
+  # If you're not sure, make this value a multiple of 2, or just
+  # leave it as is if you don't want to make burst uploads.
+  ratelimit: 2
 
 server:
   # What port to listen on. Default is 3030
