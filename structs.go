@@ -9,7 +9,6 @@ type Configuration struct {
 type SecurityConfig struct {
 	MasterKey string
 	MaxSizeBytes int
-	Capacity int64
 	PublicMode bool
 	Blacklist []string
 	Whitelist []string
@@ -21,14 +20,8 @@ type ServerConfig struct {
 }
 
 type NetConfig struct {
-	Mongo MongoConfig
 	Redis RedisConfig
 	GCS GCSConfig
-}
-
-type MongoConfig struct {
-	URI string
-	Database string
 }
 
 type RedisConfig struct {
