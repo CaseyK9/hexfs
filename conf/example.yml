@@ -33,11 +33,6 @@ server:
   idlen: 5
 
 net:
-  mongo:
-    # Full MongoDB connection URI (mongodb://)
-    uri:
-    # Database name to use
-    database:
   redis:
     uri:
     password:
