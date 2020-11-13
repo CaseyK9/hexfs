@@ -36,7 +36,6 @@ func handleCORS(h fasthttp.RequestHandler) fasthttp.RequestHandler {
 }
 
 func (b *BaseHandler) handleHTTPRequest(ctx *fasthttp.RequestCtx) {
-
 	switch string(ctx.Path()) {
 	case "/upload":
 		fasthttp.TimeoutHandler(b.ServeUpload, time.Minute * 15, "Upload timed out")(ctx)
@@ -44,10 +43,10 @@ func (b *BaseHandler) handleHTTPRequest(ctx *fasthttp.RequestCtx) {
 	case "/favicon.ico":
 		ServeFavicon(ctx)
 		break
-	case "/auth/check":
+	case "/checkauth":
 		b.ServeCheckAuth(ctx)
 		break
-	case "/server/ping":
+	case "/ping":
 		b.ServePing(ctx)
 		break
 	default:

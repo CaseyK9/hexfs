@@ -19,7 +19,7 @@ A lightweight but fast file host intended for private use (but you can make it o
 - Custom extension whitelist/blacklists.  
 - Ratelimiting with Redis.  
 - No reliance on a database.  
-- Very fast: 9.2ms to upload a 5MB file and return a response.
+- Very fast: 9.2ms to upload a 5MB file and return a response. (on a bad network!)
 
 ### Run  
   

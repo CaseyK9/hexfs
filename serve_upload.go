@@ -12,7 +12,7 @@ import (
 
 const fileHandler = "file"
 
-// ServeUpload handles all incoming POST requests to /. It will take a multipart form, parse the file, then write it to both GCS and a hasher at the same time.
+// ServeUpload handles all incoming POST requests to /upload. It will take a multipart form, parse the file, then write it to both GCS and a hasher at the same time.
 // The file's information will also be inserted into the database.
 func (b *BaseHandler) ServeUpload(ctx *fasthttp.RequestCtx) {
 	auth := b.IsAuthorized(ctx)
