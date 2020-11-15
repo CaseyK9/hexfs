@@ -6,7 +6,6 @@ require (
 	cloud.google.com/go/storage v1.12.0
 	github.com/go-redis/redis/v8 v8.3.1
 	github.com/go-redis/redis_rate/v9 v9.0.2
-	github.com/logrusorgru/aurora/v3 v3.0.0
 	github.com/spf13/viper v1.7.1
 	github.com/valyala/fasthttp v1.16.0
 	github.com/vysiondev/httputils v0.0.2

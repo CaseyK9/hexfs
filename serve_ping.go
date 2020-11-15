@@ -4,10 +4,16 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+type PingResponse struct {
+	Public bool `json:"public"`
+	ServerVersion string `json:"version"`
+	MaxSize int `json:"max_size"`
+}
+
 func (b *BaseHandler)ServePing(ctx *fasthttp.RequestCtx) {
-	resText := "public mode disabled"
-	if b.Config.Security.PublicMode {
-		resText = "public mode enabled"
-	}
-	SendTextResponse(ctx, resText, fasthttp.StatusOK)
+	SendJSONResponse(ctx, &PingResponse{
+		Public: b.Config.Security.PublicMode,
+		ServerVersion: Version,
+		MaxSize: b.Config.Security.MaxSizeBytes,
+	})
 }
