@@ -55,10 +55,11 @@ func (b *BaseHandler) ServeFile(ctx *fasthttp.RequestCtx) {
 			ctx.Response.Header.Add("Cache-Control", "no-cache, no-store, must-revalidate")
 			ctx.Response.Header.Add("Pragma", "no-cache")
 			ctx.Response.Header.Add("Expires", "0")
+
+			url := fmt.Sprintf("%s/%s?%s=true", net.GetRoot(ctx), id, rawParam)
+			_, _ = fmt.Fprint(ctx.Response.BodyWriter(), strings.Replace(discordHTML, "{{.}}", url, 1))
+			return
 		}
-		url := fmt.Sprintf("%s/%s?%s=true", net.GetRoot(ctx), id, rawParam)
-		_, _ = fmt.Fprint(ctx.Response.BodyWriter(), strings.Replace(discordHTML, "{{.}}", url, 1))
-		return
 	}
 	ctx.Response.Header.Set("Content-Disposition", "inline")
 	ctx.Response.Header.Set("Content-Length", strconv.FormatInt(wc.Attrs.Size, 10))
