@@ -1,26 +1,9 @@
+# EXAMPLE CONFIGURATION
+# Rename this file to "config.yml".
+
 security:
   # The key to upload.
   masterkey:
-  # Set the extension blacklist. If an extension is also in the whitelist, it will still be blacklisted.
-  # If this is not set, there will be no blacklist.
-  blacklist:
-    - exe
-    - sh
-    - doc
-    - docx
-    - html
-    - mhtml
-  # Set the extension whitelist.
-  # If this is not set, there will be no whitelist.
-  whitelist:
-    - png
-    - jpeg
-    - gif
-    - mp3
-    - mp4
-    - jpg
-    - apng
-    - mov
   # Max size (in bytes) a file can be. This is 50 MiB
   maxsizebytes: 52428800
   # Key not required to upload if this is true.
@@ -31,6 +14,30 @@ security:
   # If you're not sure, make this value a multiple of 2, or just
   # leave it as is if you don't want to make burst uploads.
   ratelimit: 2
+  # A subset of mime type lists which change how files can be displayed.
+  filter:
+    # A list of mime types to block from loading completely.
+    # If no values are given, a blacklist will not be set.
+    blacklist:
+      - application/octet-stream
+      - application/x-bsh
+      - application/x-sh
+      - application/x-shar
+      - application/x-shellscript
+      - text/x-shellscript
+    # If this list is populated, then hexFS will ONLY allow these mime types to be displayed.
+    # If a mime type from this list is also in the sanitize list, it will be sanitized.
+    # If a mime type from this list is also in the blacklist, it will be blacklisted anyway.
+    # If no values are given, a blacklist will not be set.
+    whitelist:
+      - image/png
+    # A list of mime types to render as text/plain. Effective against documents like HTML to prevent phishing.
+    # If no values are given, no mime types will be sanitized.
+    sanitize:
+      - text/html
+      - text/css
+      - text/javascript
+      - message/rfc822
 
 server:
   # What port to listen on. Default is 3030

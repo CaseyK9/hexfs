@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	Version = "1.10.3"
+	Version = "1.11.0"
 	GCSKeyLoc = "./conf/key.json"
 )
 
@@ -75,7 +75,6 @@ func main() {
 		ErrorHandler:                  nil,
 		HeaderReceived:                nil,
 		ContinueHandler:               nil,
-		Name:                          "hexfs v" + Version,
 		Concurrency:                   128 * 4,
 		DisableKeepalive:              false,
 		ReadTimeout:                   30 * time.Minute,

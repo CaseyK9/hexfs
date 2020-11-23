@@ -60,9 +60,16 @@ func (b *BaseHandler) ServeFile(ctx *fasthttp.RequestCtx) {
 		_, _ = fmt.Fprint(ctx.Response.BodyWriter(), strings.Replace(discordHTML, "{{.}}", url, 1))
 		return
 	}
+	filterStatus := b.FilterCheck(ctx, wc.Attrs.ContentType)
+	if filterStatus == FilterFail {
+		return
+	} else if filterStatus == FilterSanitize {
+		ctx.Response.Header.Set("Content-Type", "text/plain")
+	} else {
+		ctx.Response.Header.Set("Content-Type", wc.Attrs.ContentType)
+	}
 	ctx.Response.Header.Set("Content-Disposition", "inline")
 	ctx.Response.Header.Set("Content-Length", strconv.FormatInt(wc.Attrs.Size, 10))
-	ctx.Response.Header.Set("Content-Type", wc.Attrs.ContentType)
 	_, copyErr := io.Copy(ctx.Response.BodyWriter(), wc)
 	if copyErr != nil {
 		SendTextResponse(ctx, "Could not write file to client. " + copyErr.Error(), fasthttp.StatusInternalServerError)
