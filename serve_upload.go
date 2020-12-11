@@ -30,6 +30,7 @@ func (b *BaseHandler) ServeUpload(ctx *fasthttp.RequestCtx) {
 		SendTextResponse(ctx, "There was a problem parsing the form. " + e.Error(), fasthttp.StatusBadRequest)
 		return
 	}
+	defer ctx.Request.RemoveMultipartFormFiles()
 	if len(mp.File[fileHandler]) == 0 {
 		SendTextResponse(ctx, "No files were uploaded.", fasthttp.StatusBadRequest)
 	}

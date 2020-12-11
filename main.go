@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	Version = "1.11.0"
+	Version = "1.11.1"
 	GCSKeyLoc = "./conf/key.json"
 )
 
@@ -33,6 +33,8 @@ func main() {
 	viper.SetDefault("server.port", "3030")
 	viper.SetDefault("net.redis.db", 0)
 	viper.SetDefault("server.idlen", 5)
+	viper.SetDefault("server.concurrency", 128 * 4)
+	viper.SetDefault("server.maxconnsperip", 16)
 	viper.SetDefault("security.maxsizebytes", 52428800)
 	viper.SetDefault("security.publicmode", false)
 	viper.SetDefault("security.ratelimit", 2)
@@ -71,18 +73,18 @@ func main() {
 	b := NewBaseHandler(c, redisClient, configuration)
 
 	s := &fasthttp.Server{
+		ErrorHandler:                  HandleError,
 		Handler:                       b.limit(handleCORS(b.handleHTTPRequest)),
-		ErrorHandler:                  nil,
 		HeaderReceived:                nil,
 		ContinueHandler:               nil,
-		Concurrency:                   128 * 4,
+		Concurrency:                   configuration.Server.Concurrency,
 		DisableKeepalive:              false,
 		ReadTimeout:                   30 * time.Minute,
 		WriteTimeout:                  30 * time.Minute,
-		MaxConnsPerIP:                 16,
+		MaxConnsPerIP:                 configuration.Server.MaxConnsPerIP,
 		TCPKeepalive:                  false,
 		TCPKeepalivePeriod:            0,
-		MaxRequestBodySize:            configuration.Security.MaxSizeBytes + 1024,
+		MaxRequestBodySize:            configuration.Security.MaxSizeBytes + (1024 * 1024),
 		ReduceMemoryUsage:             false,
 		GetOnly:                       false,
 		DisablePreParseMultipartForm:  false,
@@ -98,4 +100,5 @@ func main() {
 	if err = s.ListenAndServe(":" + b.Config.Server.Port); err != nil {
 		log.Fatalf("Listen error: %s\n", err)
 	}
+
 }

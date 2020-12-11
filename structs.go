@@ -22,6 +22,8 @@ type FilterConfig struct {
 
 type ServerConfig struct {
 	Port string
+	Concurrency int
+	MaxConnsPerIP int
 	IDLen int
 }
 
