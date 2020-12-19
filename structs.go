@@ -10,13 +10,20 @@ type SecurityConfig struct {
 	MasterKey string
 	MaxSizeBytes int
 	PublicMode bool
+	Ratelimit int
+	Filter FilterConfig
+}
+
+type FilterConfig struct {
 	Blacklist []string
 	Whitelist []string
-	Ratelimit int
+	Sanitize []string
 }
 
 type ServerConfig struct {
 	Port string
+	Concurrency int
+	MaxConnsPerIP int
 	IDLen int
 }
 

@@ -25,6 +25,7 @@ A lightweight but fast file host intended for private use (but you can make it o
   
 - Put your GCS service account JSON key in conf/ as "key.json"  
 - Put your config in conf/ as "config.yml" using "conf/example.yml" as a reference  
+- Optionally, you can replace "favicon.ico" with your own icon! But, it must have the same name.
   
 #### With Docker
 

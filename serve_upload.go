@@ -30,6 +30,7 @@ func (b *BaseHandler) ServeUpload(ctx *fasthttp.RequestCtx) {
 		SendTextResponse(ctx, "There was a problem parsing the form. " + e.Error(), fasthttp.StatusBadRequest)
 		return
 	}
+	defer ctx.Request.RemoveMultipartFormFiles()
 	if len(mp.File[fileHandler]) == 0 {
 		SendTextResponse(ctx, "No files were uploaded.", fasthttp.StatusBadRequest)
 	}
@@ -44,31 +45,6 @@ func (b *BaseHandler) ServeUpload(ctx *fasthttp.RequestCtx) {
 		SendTextResponse(ctx, "File name should not exceed 256 characters.", fasthttp.StatusBadRequest)
 		return
 	}
-	ext := path.Ext(f.Filename)
-	if len(ext) == 0 {
-		SendTextResponse(ctx, "Files with no extension prohibited.", fasthttp.StatusBadRequest)
-		return
-	}
-	if len(b.Config.Security.Blacklist) > 0 {
-		for _, t := range b.Config.Security.Blacklist {
-			if ext == "." + t {
-				SendTextResponse(ctx, "Extension blacklisted.", fasthttp.StatusBadRequest)
-				return
-			}
-		}
-	}
-	if len(b.Config.Security.Whitelist) > 0 {
-		for i, t := range b.Config.Security.Whitelist {
-			if ext == "." + t {
-				break
-			}
-			if i + 1 == len(b.Config.Security.Whitelist) {
-				SendTextResponse(ctx, "Extension not whitelisted.", fasthttp.StatusBadRequest)
-				return
-			}
-		}
-	}
-
 	var wg sync.WaitGroup
 	randomStringChan := make(chan string, 1)
 	go func() {
